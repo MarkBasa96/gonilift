@@ -48,7 +48,9 @@ Ok "app files"
 $rt = Join-Path $Dist "runtime"
 Copy-Tree $pyHome $rt @("/XD", "$pyHome\Lib\site-packages", "$pyHome\Lib\test", "$pyHome\Doc", "$pyHome\Tools", "$pyHome\Scripts", "$pyHome\include", "$pyHome\libs", "__pycache__")
 Copy-Tree (Join-Path $Root ".venv\Lib\site-packages") "$rt\Lib\site-packages" @("/XD", "__pycache__", "include", "pip", "/XF", "*.lib", "*.pdb")
-$pyDll = (Get-ChildItem $rt -Filter "python3??.dll" | Select-Object -First 1).BaseName
+# python311.dll, not the python3.dll forwarder next to it (a wrongly named ._pth is ignored)
+$pyDll = (Get-ChildItem $rt -Filter "python3*.dll" | Where-Object Name -match '^python3\d+\.dll$' | Select-Object -First 1).BaseName
+if (-not $pyDll) { throw "python3XX.dll not found in the runtime" }
 Set-Content "$rt\$pyDll._pth" "$pyDll.zip`r`nDLLs`r`nLib`r`nLib\site-packages`r`nimport site" -Encoding ascii
 Ok "Python runtime ($pyDll)"
 
