@@ -68,7 +68,10 @@ public static class GoniliftShortcut {
 }
 "@
 
-$pythonw = Join-Path $Root ".venv\Scripts\pythonw.exe"
+# The ready-to-run edition carries its own Python in runtime\; an install.bat
+# setup has it in .venv.
+$pythonw = Join-Path $Root "runtime\pythonw.exe"
+if (-not (Test-Path $pythonw)) { $pythonw = Join-Path $Root ".venv\Scripts\pythonw.exe" }
 $app = Join-Path $Root "app\desktop.py"
 $icon = Join-Path $Root "gonilift.ico"
 foreach ($p in @($pythonw, $app, $icon)) { if (-not (Test-Path $p)) { throw "Missing: $p" } }
