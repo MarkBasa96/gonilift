@@ -164,7 +164,7 @@ shown in its own window by [pywebview](https://pywebview.flowrl.com/) (Windows' 
 
 ## Credits
 
-Built by **Joemark Basa**, and named for Goning. Thanks to the people behind python-audio-separator, the Mel-Band
+Built by **Joemark Basa**, and named for Goning. The vocal model is by **Kimberley Jensen** (MIT; see [THIRD-PARTY.md](THIRD-PARTY.md)). Thanks to the people behind python-audio-separator, the Mel-Band
 RoFormer research and models, PyTorch, FFmpeg and BtbN's Windows builds, Rubber Band, FastAPI, pywebview and the
 [Inter](https://rsms.me/inter/) typeface (SIL Open Font License).
 
