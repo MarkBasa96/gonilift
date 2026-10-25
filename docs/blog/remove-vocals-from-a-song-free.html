@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to Remove Vocals from a Song for Free (Windows, 2026) | Gonilift</title>
+<meta name="description" content="A step-by-step guide to removing vocals from any song for free on Windows with AI, without uploading your music: get a clean karaoke track and an isolated vocal in about a minute.">
+<link rel="canonical" href="https://markbasa96.github.io/gonilift/blog/remove-vocals-from-a-song-free.html">
+<link rel="icon" type="image/png" href="../assets/favicon.png">
+<meta property="og:type" content="article">
+<meta property="og:title" content="How to remove vocals from a song for free">
+<meta property="og:image" content="https://markbasa96.github.io/gonilift/screenshots/player-practice.png">
+<link rel="stylesheet" href="../assets/site.css">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"HowTo","name":"How to remove vocals from a song for free on Windows",
+ "tool":[{"@type":"HowToTool","name":"Gonilift (free)"}],
+ "step":[{"@type":"HowToStep","text":"Download Gonilift and run install.bat."},
+         {"@type":"HowToStep","text":"Open Gonilift and drop your song into the window."},
+         {"@type":"HowToStep","text":"Wait about a minute while the AI splits vocals from the music."},
+         {"@type":"HowToStep","text":"Mute the Vocals track to hear the karaoke version, or download both tracks as WAV."}]}
+</script>
+</head>
+<body>
+<nav><div class="wrap">
+  <a class="brand" href="../"><img src="../assets/mark.png" alt=""><span>Goni<span class="lift">lift</span></span></a>
+  <div class="links"><a href="../#features">Features</a><a href="./">Blog</a><a class="btn primary" href="https://github.com/MarkBasa96/gonilift/archive/refs/heads/main.zip">Download free</a></div>
+</div></nav>
+<main class="narrow"><article>
+  <p class="meta">Guide · 6 min read · Updated October 2026</p>
+  <h1>How to remove vocals from a song for free</h1>
+  <p>Want a karaoke version of a song that doesn't have one, or the singer's voice on its own so you can study it? A few years ago that meant phase-cancelling tricks that left a hollow, watery mess. Today, AI models trained to recognise voices can lift the vocal out of a finished mix cleanly. Here is how to do it for free, on your own Windows PC.</p>
+
+  <h2>The short answer</h2>
+  <ol>
+    <li><a href="https://github.com/MarkBasa96/gonilift/archive/refs/heads/main.zip">Download Gonilift</a> (free, open source) and double-click <code>install.bat</code>.</li>
+    <li>Open Gonilift and drop your song into the window.</li>
+    <li>About a minute later you have two tracks: <b>Vocals</b> and <b>Backing Track</b>.</li>
+    <li>Mute the vocals for karaoke, or download both as WAV files.</li>
+  </ol>
+  <img src="../screenshots/splitting.png" alt="Gonilift splitting a song, with a progress ring and four steps" loading="lazy">
+
+  <h2>Why "free" vocal removers often aren't</h2>
+  <p>Most online vocal removers follow the same pattern: you upload your song to their server, wait in a queue, and after a few free tries you hit a monthly limit or a paywall. Some keep your file. Some lower the quality unless you pay. That's a reasonable business for them, but it's a poor deal if you just want to practise singing every night.</p>
+  <p>A local app avoids all of that. The AI runs on your own computer, so there's no upload, no queue, no limit, and no account. You also keep working when the internet is down.</p>
+
+  <h2>How the AI separates a voice from the music</h2>
+  <p>Gonilift uses a <b>MelBand RoFormer</b> model, a type of neural network built for music source separation. It looks at the song as a picture of sound (which frequencies are loud at each moment) and predicts which parts of that picture belong to the singer. Everything it predicts as voice becomes the vocal track; the rest becomes the backing track.</p>
+  <div class="callout">Good separation depends on the song. Clean studio recordings separate best. Heavy reverb, live recordings and choirs are harder, and you may hear faint traces of the voice in the backing track.</div>
+
+  <h2>Step by step with Gonilift</h2>
+  <h3>1. Install it once</h3>
+  <p>Unzip Gonilift somewhere outside OneDrive (for example <code>C:\Apps\Gonilift</code>) and double-click <code>install.bat</code>. It sets up everything inside that folder in 5 to 15 minutes. The first song you split also downloads the AI model once.</p>
+  <h3>2. Drop in a song</h3>
+  <p>MP3, WAV, M4A, FLAC, OGG and AAC all work. Drop several and they wait in a queue.</p>
+  <h3>3. Practise or download</h3>
+  <p>The player shows both tracks with their waveforms. Press <b>Mute</b> on Vocals for a karaoke track, or turn the vocals down so the singer guides you quietly. <b>Download</b> saves the vocal and backing as separate WAV files.</p>
+  <img src="../screenshots/player.png" alt="Gonilift player with separate vocal and backing tracks" loading="lazy">
+
+  <h2>How long does it take?</h2>
+  <p>On a laptop with an NVIDIA RTX 3050 graphics card, a 3-minute song takes about 40 seconds. Without an NVIDIA card it still works on the processor, but it takes several minutes per song.</p>
+
+  <h2>A note on copyright</h2>
+  <p>Removing vocals for your own practice is a common, personal use. Splitting a song doesn't give you any rights to it, though, so don't publish or sell tracks made from songs you don't own.</p>
+
+  <h2>Try it</h2>
+  <p>Gonilift is free and open source. <a href="https://github.com/MarkBasa96/gonilift/archive/refs/heads/main.zip">Download it for Windows</a>, or read the next guide: <a href="change-song-key-to-fit-your-voice.html">how to change a song's key to fit your voice</a>.</p>
+</article></main>
+<footer><div class="wrap"><span>© 2026 <b>Joemark Basa</b> · <a href="../">Gonilift</a></span><span><a href="./">More guides</a></span></div></footer>
+</body>
+</html>

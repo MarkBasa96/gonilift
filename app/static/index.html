@@ -1,0 +1,1370 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gonilift</title>
+<link rel="icon" type="image/png" href="/static/favicon.png">
+<style>
+  /* Inter is bundled (static/fonts, SIL Open Font License) so the app needs no
+     internet and contacts no font server. */
+  @font-face { font-family: Inter; src: url("/static/fonts/InterVariable.woff2") format("woff2"); font-weight: 100 900; font-style: normal; font-display: swap; }
+  :root {
+    --bg: #0a0b1c; --text: #f3f4fb; --muted: #9a9cbd; --dim: #6c6f96; --line: #ffffff12;
+    --orange: #ff9a3c; --pink: #ff4fa3; --purple: #a656ff; --blue: #4d8bff; --cyan: #3fd0ff;
+    --green: #2fd67b; --danger: #ff5c6c;
+    --grad: linear-gradient(90deg, #ffa53c, #ff6fa0 55%, #b75cff);
+    --card: linear-gradient(180deg, #1a1b3ad9, #13142cd9);
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; color: var(--text); font: 15px/1.5 Inter, system-ui, sans-serif; overflow-x: hidden;
+    background: radial-gradient(1200px 700px at 72% 6%, #21184c 0%, transparent 60%),
+                radial-gradient(900px 600px at 100% 100%, #1a1b48 0%, transparent 60%), var(--bg);
+    background-attachment: fixed;
+  }
+  #stars { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
+  button { font: inherit; color: inherit; cursor: pointer; border: 0; background: none; }
+  button:disabled { opacity: .35; cursor: default; }
+  input { font: inherit; color: inherit; }
+  svg.i { width: 20px; height: 20px; flex: none; }
+  .hidden { display: none !important; }
+  .app { position: relative; z-index: 1; display: grid; grid-template-columns: 330px 1fr; min-height: 100vh; }
+
+  /* ---------- click bounce + glass shine ---------- */
+  .pop { animation: pop .38s cubic-bezier(.3, 1.6, .5, 1); }
+  @keyframes pop { 0% { transform: scale(1); } 35% { transform: scale(.9); } 70% { transform: scale(1.05); } 100% { transform: scale(1); } }
+  .shine { position: relative; isolation: isolate; }
+  .shine::before, .shine::after { content: ""; position: absolute; pointer-events: none; opacity: 0; transition: opacity .25s; border-radius: inherit; }
+  .shine::before { inset: 0; z-index: -1; background: radial-gradient(260px circle at var(--mx, 50%) var(--my, 50%), #8f7bff2e, #ff6fa012 40%, transparent 70%); }
+  .shine::after { left: 0; right: 0; top: -1px; height: 2px; background: radial-gradient(140px 2px at var(--mx, 50%) 50%, #fff, #c9b8ff99 40%, transparent 100%); filter: drop-shadow(0 0 6px #b9a6ff); }
+  .shine:hover::before, .shine:hover::after { opacity: 1; }
+  .shine:hover { border-color: #8f7bff55 !important; }
+
+  /* ---------- sidebar ---------- */
+  aside {
+    /* The logo, drop zone and "Your songs" header stay put; only the song
+       list underneath scrolls (#side). */
+    position: sticky; top: 0; height: 100vh; overflow: hidden;
+    background: #12132ab8; border-right: 1px solid #ffffff0d; padding: 28px 24px; display: flex; flex-direction: column; gap: 20px;
+    backdrop-filter: blur(14px);
+  }
+  html, #side, .table { scrollbar-width: thin; scrollbar-color: #ffffff26 transparent; }
+  html::-webkit-scrollbar { width: 8px; height: 8px; }
+  html::-webkit-scrollbar-thumb { background: #ffffff26; border-radius: 8px; }
+  html::-webkit-scrollbar-track { background: #0a0b1c; }
+  #side::-webkit-scrollbar { width: 6px; }
+  #side::-webkit-scrollbar-thumb { background: #ffffff26; border-radius: 6px; }
+  #side::-webkit-scrollbar-track { background: transparent; }
+  #side { flex: 1 1 auto; min-height: 0; overflow-y: auto; margin: -4px -10px 0 -4px; padding: 4px 10px 8px 4px; }
+  .brand { font-weight: 700; font-size: 30px; letter-spacing: -.02em; display: flex; align-items: center; gap: 12px; text-decoration: none; color: #f6f4ff; }
+  /* The logo art sits on black; "screen" blending drops the black and keeps the glow. */
+  .brand .mark { width: 62px; height: 48px; object-fit: cover; mix-blend-mode: screen; filter: drop-shadow(0 0 10px #a656ff55); }
+  .brand .lift { background: linear-gradient(90deg, #b44dff, #ff5fb4 55%, #ffab6b); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .drop { border: 1.5px dashed #8f7bff66; border-radius: 16px; padding: 24px 22px; text-align: center; background: linear-gradient(180deg, #1d1c45, #17173a); transition: .15s; }
+  .drop.over { border-color: var(--pink); box-shadow: 0 0 0 4px #ff4fa31f; }
+  .upicon { width: 58px; height: 58px; border-radius: 50%; margin: 0 auto 14px; display: grid; place-items: center; background: #2c2c63; color: #b9b8ff; }
+  .upicon svg { width: 28px; height: 28px; }
+  .drop strong { display: block; font-size: 17px; font-weight: 600; }
+  .drop .types { color: var(--muted); font-size: 14px; }
+  .cta { margin-top: 18px; width: 100%; height: 52px; border-radius: 12px; font-weight: 600; font-size: 17px; background: var(--grad); color: #1d0f12; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 8px 28px #ff6fa033; }
+  .cta:hover { filter: brightness(1.07); }
+  .lib-head { display: flex; justify-content: space-between; align-items: center; margin-top: 6px; }
+  .lib-title { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; }
+  .lib-head button { color: var(--muted); display: flex; padding: 4px; border-radius: 8px; }
+  .lib-head button:hover { color: var(--text); background: #ffffff10; }
+  #sideAll { flex: none; }
+  .navall .pchev { width: 18px; height: 18px; margin-left: 6px; color: #e9ddff; transition: transform .25s; }
+  .navall.collapsed .pchev { transform: rotate(-90deg); }
+  .navall .count { margin-left: auto; }
+  /* Showing the list: each song fades in from glassy blur, top to bottom.
+     Hiding it: they fade out bottom to top, then the list is hidden. */
+  #side.reveal .sitem { animation: glassIn .5s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(var(--i) * 60ms); }
+  #side.conceal .sitem { animation: glassOut .26s ease-in both; animation-delay: calc((var(--n) - var(--i)) * 35ms); }
+  @keyframes glassIn { from { opacity: 0; transform: translateY(-16px) scale(.98); filter: blur(10px); } }
+  @keyframes glassOut { to { opacity: 0; transform: translateY(-10px) scale(.98); filter: blur(8px); } }
+  .side-list { display: flex; flex-direction: column; gap: 6px; }
+  .navall { display: flex; align-items: center; gap: 14px; padding: 12px 16px; border-radius: 12px; border: 1px solid transparent; font-weight: 500; font-size: 16px; }
+  .navall svg { width: 26px; height: 26px; color: #e79bff; }
+  .navall .count { margin-left: auto; background: #ffffff1a; border-radius: 99px; min-width: 28px; height: 24px; display: grid; place-items: center; font-size: 13px; padding: 0 8px; }
+  .navall { width: 100%; background: linear-gradient(90deg, #8e3dff, #5b2fd6); border-color: #b48bff66; box-shadow: 0 6px 24px #7b3dff40; margin-bottom: 10px; }
+  .navall:hover { filter: brightness(1.08); }
+  .navall.collapsed { background: linear-gradient(90deg, #8e3dffb3, #5b2fd6b3); }
+  .sitem { display: flex; align-items: center; gap: 14px; padding: 10px 8px 10px 12px; border-radius: 14px; text-align: left; border: 1px solid transparent; width: 100%; cursor: pointer; flex: none; }
+  .sitem .sdots { width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; color: var(--muted); flex: none; opacity: 0; transition: opacity .15s; }
+  .sitem .sdots svg { width: 18px; height: 18px; }
+  .sitem:hover .sdots, .sitem:focus-within .sdots, .sitem.menu-open .sdots { opacity: 1; }
+  .sitem .sdots:hover { background: #ffffff14; color: var(--text); }
+  @media (hover: none) { .sitem .sdots { opacity: 1; } }
+  .sitem:hover { background: #ffffff08; }
+  .sitem.active { background: linear-gradient(90deg, #3a2470cc, #251e55cc); border-color: #a07bff88; box-shadow: 0 0 24px #7b3dff33; }
+  .sitem .txt { min-width: 0; flex: 1; }
+  .sitem b { display: block; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sitem small { color: var(--muted); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
+  .spin { display: inline-block; width: 22px; height: 22px; border-radius: 50%; border: 2px solid #ffffff33; border-top-color: #fff; animation: rot 1s linear infinite; flex: none; }
+  @keyframes rot { to { transform: rotate(360deg); } }
+  .lib-empty { border: 1px solid #ffffff0d; background: #ffffff05; border-radius: 16px; padding: 30px 20px; text-align: center; }
+  .lib-empty .note { width: 58px; height: 58px; border-radius: 50%; margin: 0 auto 14px; display: grid; place-items: center; background: #24254a; color: #d6d4ff; }
+  .lib-empty .note svg { width: 26px; height: 26px; }
+  .lib-empty b { display: block; font-weight: 600; margin-bottom: 6px; }
+  .lib-empty span { color: var(--muted); font-size: 14px; }
+
+  /* covers: real album art, or a gradient tile with a note */
+  .cover { border-radius: 10px; overflow: hidden; flex: none; display: grid; place-items: center; color: #ffffffd9; background-size: cover; background-position: center; box-shadow: inset 0 0 0 1px #ffffff1a; }
+  .cover svg { width: 42%; height: 42%; filter: drop-shadow(0 2px 6px #0006); }
+  .cover.has-art svg { display: none; }
+
+  /* ---------- shared main ---------- */
+  main { position: relative; min-width: 0; }
+  .view { position: relative; min-height: 100vh; }
+  .deco { position: absolute; top: 0; right: 0; width: 70%; height: 300px; pointer-events: none; overflow: hidden; }
+  .deco svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .deco canvas { position: absolute; right: 6%; top: 18px; width: 62%; height: 200px; }
+  .card { background: var(--card); border: 1px solid #ffffff12; border-radius: 18px; }
+  .btn { height: 44px; padding: 0 18px; border-radius: 12px; border: 1px solid #ffffff22; background: #ffffff08; display: inline-flex; align-items: center; gap: 10px; font-weight: 500; }
+  .btn:hover { background: #ffffff12; }
+  .iconbtn { width: 50px; height: 50px; border-radius: 12px; border: 1px solid #ffffff22; background: #ffffff08; display: grid; place-items: center; }
+  .iconbtn:hover:not(:disabled) { background: #ffffff14; }
+
+  /* ---------- home ---------- */
+  .hero { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; padding: 0 clamp(16px, 4vw, 64px) 12vh; overflow: hidden; }
+  .hero-art { position: absolute; inset: 0 0 auto 0; height: 62%; pointer-events: none; }
+  .hero-art svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .hero-art canvas { position: absolute; left: 50%; top: 14%; transform: translateX(-50%); width: min(980px, 92%); height: 62%; }
+  .hero h1 { position: relative; font-size: clamp(34px, 4.4vw, 60px); font-weight: 800; letter-spacing: -.02em; margin: 0 0 14px; text-align: center; line-height: 1.1; }
+  .gradtext { background: linear-gradient(90deg, var(--orange), var(--pink) 60%, #d063ff); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .hero > p { position: relative; max-width: 700px; text-align: center; color: var(--muted); font-size: clamp(16px, 1.4vw, 20px); margin: 0 0 40px; }
+  .features { position: relative; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 22px; width: min(1120px, 100%); }
+  .feature { border-radius: 16px; padding: 22px; display: flex; gap: 16px; border: 1px solid; min-height: 160px; }
+  .feature h3 { margin: 6px 0 8px; font-size: 17px; font-weight: 600; }
+  .feature p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.55; }
+  .ficon { width: 46px; height: 46px; border-radius: 12px; display: grid; place-items: center; flex: none; color: #fff; }
+  .ficon svg { width: 24px; height: 24px; }
+  .t-voc { background: linear-gradient(160deg, #3a1530aa, #1b1530aa); border-color: #ff4fa335; } .t-voc .ficon, .ficon.t-voc { background: linear-gradient(135deg, #ff4fa3, #c43a7f); }
+  .t-bak { background: linear-gradient(160deg, #142048aa, #141836aa); border-color: #4d8bff35; } .t-bak .ficon, .ficon.t-bak { background: linear-gradient(135deg, #3d6dff, #2a46b8); }
+  .t-key { background: linear-gradient(160deg, #22174aaa, #17163aaa); border-color: #a656ff35; } .t-key .ficon, .ficon.t-key { background: linear-gradient(135deg, #9a4dff, #6a2fd1); }
+  .t-loop { background: linear-gradient(160deg, #2e1e18aa, #1b1620aa); border-color: #ff9a3c35; } .t-loop .ficon, .ficon.t-loop { background: linear-gradient(135deg, #a8642d, #6b3f22); }
+
+  /* ---------- processing ---------- */
+  .proc { display: flex; flex-direction: column; align-items: center; padding: 190px clamp(16px, 4vw, 64px) 24px; }
+  .proc .bars-top { position: absolute; left: 50%; top: 20px; transform: translateX(-50%); width: min(900px, 90%); height: 160px; }
+  .proc-card { position: relative; width: min(864px, 100%); padding: 26px 24px 18px; border-radius: 22px; text-align: center;
+    background: linear-gradient(180deg, #1b1c44e6, #121330e6); border: 1px solid #8f7bff40;
+    box-shadow: 0 0 0 1px #ff6fa018, 0 20px 80px #6a3dff30, inset 0 1px 0 #ffffff14; }
+  .proc-card::before { content: ""; position: absolute; inset: -1px; border-radius: 22px; padding: 1px; pointer-events: none;
+    background: linear-gradient(160deg, #6a7bff88, transparent 35%, transparent 65%, #ff6fa0aa); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
+  .ring { position: relative; width: 176px; height: 176px; margin: 0 auto 12px; }
+  .ring svg { width: 100%; height: 100%; transform: rotate(-90deg); filter: drop-shadow(0 0 14px #ff4fa366); }
+  .ring .pct { position: absolute; inset: 0; display: grid; place-items: center; font-size: 40px; font-weight: 700; }
+  .ring .pct small { font-size: 24px; font-weight: 600; }
+  .proc h2 { font-size: 32px; margin: 0; letter-spacing: -.01em; }
+  .proc .sub { color: #b4b0ea; font-size: 17px; margin: 2px 0 22px; }
+  .steps { display: grid; grid-template-columns: repeat(4, 1fr); position: relative; margin: 0 10px 20px; }
+  .step-i { display: flex; flex-direction: column; align-items: center; gap: 8px; position: relative; }
+  .step-i .node { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; border: 2px solid #ffffff26; background: #15163a; position: relative; z-index: 1; }
+  .step-i .node svg { width: 20px; height: 20px; }
+  .step-i.done .node { border-color: var(--pink); color: #fff; box-shadow: 0 0 12px #ff4fa366; }
+  .step-i.done:nth-child(2) .node { border-color: var(--purple); box-shadow: 0 0 12px #a656ff66; }
+  .step-i.active .node { border-color: #7fb0ff; background: radial-gradient(circle, #4d8bff, #2a46b8); box-shadow: 0 0 22px #4d8bffaa; color: #fff; }
+  .step-i b { font-weight: 600; font-size: 15px; }
+  .step-i small { color: var(--muted); font-size: 13px; max-width: 160px; line-height: 1.4; }
+  .step-i:not(:last-child)::after { content: ""; position: absolute; top: 21px; left: calc(50% + 24px); right: calc(-50% + 24px); height: 2px; background: repeating-linear-gradient(90deg, #ffffff30 0 4px, transparent 4px 8px); }
+  .step-i.done:not(:last-child)::after { background: linear-gradient(90deg, var(--pink), var(--purple)); }
+  .step-i.done:nth-child(2)::after { background: linear-gradient(90deg, var(--purple), var(--blue)); }
+  .filebar { display: flex; align-items: center; gap: 16px; padding: 14px 18px; border-radius: 14px; background: #ffffff08; border: 1px solid #ffffff12; text-align: left; }
+  .filebar .ic { width: 52px; height: 52px; border-radius: 10px; background: #2a2b55; display: grid; place-items: center; color: #8fb4ff; flex: none; }
+  .filebar .ic svg { width: 26px; height: 26px; }
+  .filebar b { display: block; font-weight: 500; font-size: 17px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .filebar small { color: var(--muted); }
+  .filebar .txt { flex: 1; min-width: 0; }
+
+  /* ---------- player ---------- */
+  /* The player always fills the window height: the two waveforms stretch to
+     take whatever space the screen has, so it fits a 1580x760 laptop window
+     and a 1910x950 monitor alike. Below 640px tall it scrolls instead. */
+  .player { height: 100vh; min-height: 640px; padding: clamp(16px, 2.6vh, 30px) clamp(16px, 2.4vw, 32px); display: flex; flex-direction: column; gap: clamp(10px, 1.5vh, 16px); }
+  .p-head { position: relative; display: flex; gap: 20px; align-items: center; flex: none; }
+  .p-head .cover { width: clamp(80px, 11vh, 124px); height: clamp(80px, 11vh, 124px); border-radius: 14px; }
+  .p-head .info { min-width: 0; flex: 1; }
+  .p-head h1 { margin: 0; font-size: clamp(24px, min(2.2vw, 4vh), 40px); font-weight: 700; letter-spacing: -.02em; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .p-head .metaline { color: #b4b0ea; font-size: 15px; margin: 0 0 8px; }
+  .p-head .row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; color: var(--muted); font-size: 14px; }
+  .pill { display: inline-flex; align-items: center; gap: 7px; height: 30px; padding: 0 13px; border-radius: 99px; font-weight: 500; font-size: 13px; }
+  .pill.ok { background: #0f3b2a; color: #5ff0a0; border: 1px solid #2fd67b66; }
+  .pill.ok svg { color: #fff; background: var(--green); border-radius: 50%; padding: 3px; width: 17px; height: 17px; }
+  .p-head .row .sep { width: 1px; height: 20px; background: #ffffff22; }
+  .p-actions { display: flex; flex-direction: column; gap: 8px; align-self: center; }
+  .p-actions .btn { height: 40px; font-size: 14px; justify-content: center; }
+  .btn.dl { background: var(--grad); color: #1d0f12; border-color: transparent; font-weight: 600; box-shadow: 0 6px 22px #ff6fa033; }
+  .btn.dl:hover { background: var(--grad); filter: brightness(1.08); }
+  .btn.dl .chev { width: 16px; height: 16px; margin-left: auto; }
+  .track { padding: 12px 18px 12px; display: flex; flex-direction: column; gap: 4px; flex: 1 1 0; min-height: 0; }
+  .track.t-voc { border-color: #ff4fa340; } .track.t-bak { border-color: #4d8bff40; }
+  .t-top { display: flex; align-items: center; gap: 14px; }
+  .t-top .ficon { width: 42px; height: 42px; border-radius: 11px; }
+  .t-top .ficon svg { width: 21px; height: 21px; }
+  .t-top h3 { margin: 0; font-size: 17px; font-weight: 600; line-height: 1.25; }
+  .t-top p { margin: 0; color: var(--muted); font-size: 13px; }
+  .t-top .grow { flex: 1; min-width: 0; }
+  .tbtn { height: 36px; padding: 0 14px; border-radius: 10px; border: 1px solid #ffffff22; background: #ffffff08; display: inline-flex; align-items: center; gap: 8px; font-weight: 500; font-size: 14px; }
+  .tbtn svg { width: 17px; height: 17px; }
+  .tbtn.on.mute { background: #ff5c6c33; border-color: var(--danger); }
+  .t-voc .tbtn.on.solo { background: #ff4fa333; border-color: var(--pink); box-shadow: 0 0 16px #ff4fa344; }
+  .t-bak .tbtn.on.solo { background: #4d8bff33; border-color: var(--blue); box-shadow: 0 0 16px #4d8bff44; }
+  .more { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; color: var(--muted); }
+  .more:hover { background: #ffffff10; color: var(--text); }
+  .twave { position: relative; flex: 1 1 auto; min-height: 48px; margin: 2px 0 0 62px; cursor: pointer; }
+  .twave canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  .twave .ph { position: absolute; top: 0; bottom: 0; width: 2px; background: #fff; box-shadow: 0 0 8px #fffa; pointer-events: none; }
+  .twave .ph::before { content: ""; position: absolute; top: -4px; left: -4px; width: 10px; height: 10px; border-radius: 50%; background: #fff; }
+  .t-bottom { display: flex; align-items: center; gap: 18px; }
+  .bigplay { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; flex: none; position: relative; }
+  .bigplay::before { content: ""; position: absolute; inset: 0; border-radius: 50%; padding: 3px; background: linear-gradient(135deg, var(--pink), var(--purple)); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
+  .t-bak .bigplay::before { background: linear-gradient(135deg, var(--blue), var(--cyan)); }
+  .bigplay::before { padding: 2px; }
+  .bigplay svg { width: 18px; height: 18px; }
+  .clock { font-variant-numeric: tabular-nums; color: #d5d6ee; font-size: 14px; white-space: nowrap; min-width: 84px; }
+  input[type=range] { -webkit-appearance: none; appearance: none; height: 6px; border-radius: 6px; background: linear-gradient(90deg, var(--fill-a, #ff4fa3), var(--fill-b, #a656ff)) 0 / var(--val, 50%) 100% no-repeat, #ffffff1c; cursor: pointer; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 4px #ffffff22, 0 0 12px #fff8; }
+  .t-bak input[type=range] { --fill-a: #3d6dff; --fill-b: #3fd0ff; }
+  .seek { flex: 1; --val: 0%; }
+  .volwrap { display: flex; align-items: center; gap: 12px; width: 230px; color: #d5d6ee; }
+  .volwrap input { flex: 1; }
+  .volwrap span { width: 40px; text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); font-size: 13px; }
+  .bottom2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; flex: none; }
+  .keys button { min-width: 0; padding: 0; }
+  @media (max-width: 1460px) { .toolbar { flex-wrap: wrap !important; } .sortsel { margin-left: 0; } }
+  .t-top, .t-bottom { flex: none; }
+  .kcard, .lcard { padding: 12px 18px 14px; }
+  .kcard { border-color: #a656ff40; } .lcard { border-color: #ff9a3c40; }
+  .chead { display: flex; align-items: center; gap: 14px; margin-bottom: 10px; }
+  .chead .ficon { width: 42px; height: 42px; border-radius: 11px; }
+  .chead .ficon svg { width: 21px; height: 21px; }
+  .chead h3 { margin: 0; font-size: 17px; font-weight: 600; line-height: 1.25; }
+  .chead p { margin: 0; color: var(--muted); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .chead .grow { flex: 1; min-width: 0; }
+  .keystate { display: flex; border: 1px solid #ffffff22; border-radius: 10px; overflow: hidden; height: 34px; align-items: center; }
+  .keystate span { padding: 0 12px; font-size: 13px; white-space: nowrap; }
+  .keystate button { width: 34px; height: 34px; border-left: 1px solid #ffffff22; display: grid; place-items: center; }
+  .keystate svg { width: 16px; height: 16px; }
+  .keys { display: grid; grid-template-columns: repeat(13, 1fr); gap: 6px; }
+  .keys button { height: clamp(38px, 5vh, 52px); border-radius: 9px; border: 1px solid #ffffff1c; background: #ffffff06; font-weight: 500; font-size: 15px; }
+  .keys button:hover { background: #ffffff12; }
+  .keys button.on { border: 2px solid #b48bff; background: #7b3dff26; box-shadow: 0 0 16px #a656ff55; }
+  .toggle { display: flex; align-items: center; gap: 10px; font-weight: 500; white-space: nowrap; font-size: 14px; }
+  .switch { width: 44px; height: 24px; border-radius: 99px; background: #ffffff22; position: relative; transition: .2s; }
+  .switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: .2s; }
+  .switch.on { background: linear-gradient(90deg, #ffb347, #ff9a3c); }
+  .switch.on::after { left: 23px; }
+  .lrow { display: flex; align-items: center; gap: 14px; }
+  .lrow .iconbtn { width: 40px; height: 40px; }
+  .lwave { position: relative; flex: 1; height: clamp(38px, 5vh, 52px); cursor: pointer; }
+  .lwave canvas { width: 100%; height: 100%; display: block; }
+  .handle { position: absolute; top: -6px; bottom: -6px; width: 14px; margin-left: -7px; cursor: ew-resize; touch-action: none; }
+  .handle::before { content: ""; position: absolute; left: 6px; top: 8px; bottom: 8px; width: 2px; background: var(--orange); box-shadow: 0 0 8px var(--orange); }
+  .handle::after { content: ""; position: absolute; left: 1px; top: 0; width: 12px; height: 12px; border-radius: 50%; background: var(--orange); box-shadow: 0 0 10px var(--orange); }
+  .handle i { position: absolute; left: 1px; bottom: 0; width: 12px; height: 12px; border-radius: 50%; background: var(--orange); }
+  .ltimes { display: flex; align-items: center; gap: 12px; margin: 10px 0 0; color: var(--muted); }
+  .ltimes span { min-width: 76px; height: 32px; border-radius: 9px; border: 1px solid #ffffff22; display: grid; place-items: center; color: var(--text); font-variant-numeric: tabular-nums; font-size: 14px; }
+  .speed { display: flex; align-items: center; gap: 8px; margin-left: auto; color: var(--muted); font-size: 13px; }
+  .speed button { width: 30px; height: 30px; border-radius: 8px; border: 1px solid #ffffff22; }
+  .speed b { color: var(--text); min-width: 52px; text-align: center; font-variant-numeric: tabular-nums; }
+  .note-busy { color: var(--orange); font-size: 13px; min-height: 18px; margin-top: 8px; }
+
+  /* ---------- menu ---------- */
+  /* Credit, tucked into the strip under the cards so it never covers a button. */
+  .credit { position: fixed; right: 18px; bottom: 2px; z-index: 5; pointer-events: none; font-size: 11px; line-height: 15px; letter-spacing: .02em; color: #8a8cb3a6; }
+  .credit b { font-weight: 600; background: linear-gradient(90deg, #b44dff, #ff5fb4 55%, #ffab6b); -webkit-background-clip: text; background-clip: text; color: transparent; opacity: .85; }
+
+  /* ---------- full-title note beside the mouse ---------- */
+  .tip { position: fixed; z-index: 120; max-width: min(460px, 80vw); padding: 8px 12px; border-radius: 10px; pointer-events: none;
+    font-size: 14px; font-weight: 500; line-height: 1.4; color: #f3f4fb; background: #1b1c3ce6; border: 1px solid #b48bff55;
+    box-shadow: 0 10px 30px #0008, 0 0 18px #7b3dff33; backdrop-filter: blur(10px); opacity: 0; transform: translateY(4px); transition: opacity .15s, transform .15s; }
+  .tip.show { opacity: 1; transform: none; }
+
+  /* ---------- glass pop-ups (confirm delete, deleted, stop split) ---------- */
+  .modal-back { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 16px;
+    background: #06071499; backdrop-filter: blur(10px) saturate(1.1); animation: fadeIn .2s ease both; }
+  .modal-back.out { animation: fadeOut .18s ease both; }
+  @keyframes fadeIn { from { opacity: 0; } } @keyframes fadeOut { to { opacity: 0; } }
+  .modal { position: relative; width: min(660px, 100%); padding: 32px 36px 28px; border-radius: 22px;
+    background: radial-gradient(500px 220px at 20% 0%, #2a2466cc, transparent 70%), linear-gradient(180deg, #1c1b48f2, #121233f2);
+    box-shadow: 0 0 40px #7b3dff40, 0 0 90px #ff4fa31f, 0 30px 80px #000a, inset 0 1px 0 #ffffff1a; animation: popIn .28s cubic-bezier(.2, 1.3, .4, 1) both; }
+  .modal::before { content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1.5px; pointer-events: none;
+    background: linear-gradient(135deg, #5b8bff, #a656ff 45%, #ff4fa3 80%, #ff9a3c); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
+  @keyframes popIn { from { opacity: 0; transform: scale(.94) translateY(8px); } }
+  .modal .mclose { position: absolute; top: 20px; right: 20px; width: 40px; height: 40px; border-radius: 10px; border: 1px solid #ffffff2a; display: grid; place-items: center; color: #d5d6ee; }
+  .modal .mclose:hover { background: #ffffff12; }
+  .modal .mhead { display: flex; align-items: center; gap: 22px; margin: 0 48px 18px 0; }
+  .modal .mtile { width: 72px; height: 72px; border-radius: 16px; display: grid; place-items: center; flex: none; }
+  .modal .mtile svg { width: 32px; height: 32px; }
+  .modal.danger .mtile { background: linear-gradient(160deg, #5a1428, #3a0f1d); border: 1px solid #ff4f6b88; color: #ff5c77; box-shadow: 0 0 22px #ff3b6b40; }
+  .modal.success .mtile { background: linear-gradient(160deg, #0f4a32, #0b2e22); border: 1px solid #2fd67b88; color: #4cf08f; box-shadow: 0 0 22px #2fd67b40; }
+  .modal h2 { margin: 0; font-size: clamp(28px, 3vw, 38px); font-weight: 700; letter-spacing: -.02em; }
+  .modal h2 .red { background: linear-gradient(90deg, #ff4f8b, #ff6fc8); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .modal h2 .green { color: #3ee88a; }
+  .modal .mbody { color: #d5d6ee; font-size: 18px; line-height: 1.6; }
+  .modal .mbody b { color: #fff; font-weight: 600; }
+  .modal .mbody .soft { color: var(--muted); font-size: 16px; margin-top: 10px; }
+  .modal .mbody ul { margin: 8px 0 0; padding-left: 20px; color: #fff; font-size: 16px; }
+  .modal .mfoot { display: flex; justify-content: flex-end; gap: 16px; margin-top: 22px; padding-top: 22px; border-top: 1px solid #ffffff14; }
+  .modal.success .mfoot { border-top: 0; padding-top: 4px; }
+  .modal .mbtn { height: 54px; min-width: 132px; padding: 0 24px; border-radius: 12px; font-weight: 600; font-size: 17px; display: inline-flex; align-items: center; justify-content: center; gap: 10px; }
+  .modal .mbtn.ghost { border: 1px solid #ffffff3a; background: #ffffff06; }
+  .modal .mbtn.ghost:hover { background: #ffffff12; }
+  .modal .mbtn.red { background: linear-gradient(90deg, #ff3b6b, #e0245e); color: #fff; box-shadow: 0 8px 26px #ff3b6b55; }
+  .modal .mbtn.done { background: linear-gradient(90deg, #3d6dff, #8f5bff 55%, #ff4fa3); color: #fff; min-width: 150px; box-shadow: 0 8px 26px #7b3dff55; }
+  .modal .mbtn.red:hover, .modal .mbtn.done:hover { filter: brightness(1.08); }
+  .modal .mbtn svg { width: 20px; height: 20px; }
+
+  .menu { position: fixed; z-index: 50; min-width: 220px; padding: 6px; border-radius: 14px; background: #1b1c3cf2; border: 1px solid #ffffff1f; box-shadow: 0 18px 50px #0009; backdrop-filter: blur(10px); }
+  .menu button, .menu a { display: flex; width: 100%; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 10px; text-align: left; color: var(--text); text-decoration: none; font-size: 14px; }
+  .menu button:hover, .menu a:hover { background: #ffffff12; }
+  .menu .danger { color: var(--danger); }
+  .menu svg { width: 18px; height: 18px; color: var(--muted); }
+
+  /* ---------- library ---------- */
+  .library { padding: 36px clamp(16px, 2.4vw, 32px) 24px; display: flex; flex-direction: column; gap: 18px; }
+  .library h1 { position: relative; margin: 0; font-size: clamp(36px, 3.6vw, 50px); font-weight: 700; letter-spacing: -.02em; }
+  .library .lead { position: relative; color: #b4b0ea; font-size: 19px; margin: -14px 0 8px; }
+  .toolbar { position: relative; display: flex; gap: 12px; padding: 20px; align-items: center; flex-wrap: wrap; }
+  .toolbar { flex-wrap: nowrap; padding: 16px; }
+  .search { display: flex; align-items: center; gap: 12px; height: 50px; padding: 0 16px; border-radius: 12px; border: 1px solid #ffffff1f; background: #ffffff06; flex: 1 1 200px; min-width: 160px; max-width: 370px; }
+  .search input { min-width: 0; }
+  #filters { flex-wrap: nowrap !important; gap: 8px !important; }
+  .search input { background: none; border: 0; outline: 0; flex: 1; font-size: 16px; }
+  .search input::placeholder { color: var(--dim); }
+  .search svg { color: #c7c8e4; }
+  .fchip { height: 50px; padding: 0 15px; border-radius: 12px; border: 1px solid #ffffff1f; background: #ffffff06; font-size: 15px; white-space: nowrap; }
+  .fchip:hover { background: #ffffff10; }
+  .fchip.on { border: 2px solid #7f6bff; background: #4b3dff1f; box-shadow: 0 0 18px #7f6bff44; }
+  .sortsel { margin-left: auto; flex: none; position: relative; display: flex; align-items: center; gap: 10px; height: 50px; padding: 0 16px; border-radius: 12px; border: 1px solid #ffffff1f; background: #ffffff06; }
+  .sortsel select { appearance: none; background: none; border: 0; color: var(--text); font: inherit; font-size: 16px; padding-right: 26px; cursor: pointer; outline: 0; }
+  .sortsel select option { background: #1b1c3c; }
+  .sortsel .chev { position: absolute; right: 16px; pointer-events: none; }
+  .table { padding: 0; overflow: hidden; }
+  .thead, .trow { display: grid; grid-template-columns: 30px minmax(240px, 2.6fr) minmax(130px, 1.1fr) 76px 200px 156px 190px; align-items: center; gap: 12px; padding: 0 24px; }
+  /* glassy checkboxes */
+  .tick { position: relative; width: 24px; height: 24px; display: inline-grid; place-items: center; cursor: pointer; }
+  .tick input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+  .tick span { width: 22px; height: 22px; border-radius: 7px; border: 1.5px solid #ffffff40; background: #ffffff08; transition: .15s; display: grid; place-items: center; }
+  .tick:hover span { border-color: #b48bff; box-shadow: 0 0 10px #a656ff44; }
+  .tick input:checked + span, .tick input:indeterminate + span { background: linear-gradient(135deg, #8e3dff, #ff4fa3); border-color: transparent; box-shadow: 0 0 12px #a656ff66; }
+  .tick input:checked + span::after { content: ""; width: 10px; height: 5px; border: 2.5px solid #fff; border-top: 0; border-right: 0; transform: rotate(-45deg) translate(1px, -1px); }
+  .tick input:indeterminate + span::after { content: ""; width: 10px; height: 2.5px; background: #fff; border-radius: 2px; }
+  .tick input:focus-visible + span { outline: 2px solid #b48bff; outline-offset: 2px; }
+  .trow.picked { background: #7b3dff14; border-color: #a656ff40; }
+  .fchip.clearbtn { color: #ff8b9d; border-color: #ff5c6c55; display: inline-flex; align-items: center; gap: 8px; }
+  .fchip.clearbtn:not(:disabled):hover { background: #ff3b6b1f; }
+  .fchip.clearbtn:not(:disabled) { background: #ff3b6b14; box-shadow: 0 0 14px #ff3b6b22; }
+  .actions .iconbtn.del:hover:not(:disabled) { color: #ff6b81; border-color: #ff5c6c88; background: #ff3b6b14; }
+  .thead { height: 54px; color: #c7c8e4; font-size: 16px; font-weight: 500; border-bottom: 1px solid #ffffff10; }
+  .thead .act { text-align: center; }
+  .trow { min-height: 96px; border-top: 1px solid #ffffff0c; border-radius: 14px; border: 1px solid transparent; margin: 0 2px; }
+  .trow:first-of-type { border-top-color: transparent; }
+  .trow .song { display: flex; align-items: center; gap: 20px; min-width: 0; cursor: pointer; }
+  .trow .cover { width: 68px; height: 68px; border-radius: 10px; }
+  .trow .song b { display: block; font-size: 18px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .trow .song small { color: var(--muted); font-size: 15px; }
+  .trow .mini { height: 56px; width: 100%; }
+  .trow .dur, .trow .date { color: #c7c8e4; font-size: 16px; font-variant-numeric: tabular-nums; }
+  .status { display: inline-flex; align-items: center; gap: 10px; height: 46px; padding: 0 16px; border-radius: 99px; font-size: 15px; font-weight: 500; white-space: nowrap; }
+  .status svg { width: 22px; height: 22px; }
+  .status.ok { background: #0f3b2a; color: #5ff0a0; border: 1px solid #2fd67b55; }
+  .status.running { background: #3a2410; color: #ffb35c; border: 1px solid #ff9a3c55; }
+  .status.queue { background: #ffffff08; color: #c7c8e4; border: 1px solid #ffffff22; }
+  .status.fail { background: #3a1018; color: #ff8b97; border: 1px solid #ff5c6c55; }
+  .status .spin { width: 18px; height: 18px; border-color: #ffb35c44; border-top-color: #ffb35c; }
+  .pbar { height: 8px; border-radius: 8px; background: #ffffff14; margin-top: 8px; width: 180px; overflow: hidden; }
+  .pbar i { display: block; height: 100%; background: linear-gradient(90deg, #ffb347, #ff8a3c); border-radius: 8px; transition: width .4s; }
+  .stwrap { display: flex; flex-direction: column; }
+  .stwrap .pctline { display: flex; align-items: center; gap: 10px; }
+  .actions { display: flex; gap: 12px; justify-content: center; }
+  .actions .iconbtn svg { width: 22px; height: 22px; }
+  .empty-table { padding: 50px 20px; text-align: center; color: var(--muted); }
+
+  /* Narrower windows (e.g. 1366x768 laptops): the library drops its small
+     waveform column first, then the date, instead of spilling off the edge. */
+  @media (max-width: 1560px) {
+    .thead, .trow { grid-template-columns: 30px minmax(220px, 2.4fr) 76px 190px 150px 170px; }
+    .thead .c-wave, .trow .mini { display: none; }
+    .actions { gap: 8px; }
+  }
+  @media (max-width: 1360px) {
+    .thead, .trow { grid-template-columns: 30px minmax(200px, 2fr) 70px 180px 170px; }
+    .thead .c-date, .trow .date { display: none; }
+  }
+  @media (max-width: 1250px) {
+    .toolbar, #filters { flex-wrap: wrap !important; }
+    .features { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .bottom2 { grid-template-columns: 1fr; }
+    .player { height: auto; }
+    .twave { flex: none; height: 64px; }
+  }
+  @media (max-width: 760px) {
+    .app { grid-template-columns: 1fr; }
+    .player { height: auto; }
+    aside, #side { overflow: visible; }
+    .twave { flex: none; height: 64px; }
+    aside { position: static; height: auto; border-right: 0; border-bottom: 1px solid #ffffff0d; padding: 20px 16px; }
+    .hero { min-height: auto; padding-top: 220px; padding-bottom: 40px; }
+    .hero-art { height: 260px; }
+    .features, .steps { grid-template-columns: 1fr; }
+    .step-i::after { display: none; }
+    .p-head { flex-wrap: wrap; } .p-head .cover { width: 110px; height: 110px; } .p-head .again { margin-top: 0; }
+    .twave { margin-left: 0; }
+    .t-bottom { flex-wrap: wrap; } .volwrap { width: 100%; }
+    .keys { grid-template-columns: repeat(7, 1fr); }
+    .thead { display: none; }
+    .trow { grid-template-columns: 1fr; padding: 14px; gap: 10px; }
+    .actions { justify-content: flex-start; }
+    .sortsel { margin-left: 0; }
+  }
+</style>
+</head>
+<body>
+<canvas id="stars"></canvas>
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffb347"/><stop offset=".5" stop-color="#ff4fa3"/><stop offset="1" stop-color="#b75cff"/></linearGradient>
+    <linearGradient id="gw1" x1="0" x2="1"><stop offset="0" stop-color="#3b5bff" stop-opacity="0"/><stop offset=".35" stop-color="#6a4dff" stop-opacity=".55"/><stop offset=".7" stop-color="#a656ff" stop-opacity=".3"/><stop offset="1" stop-color="#ff9a3c" stop-opacity=".85"/></linearGradient>
+    <linearGradient id="gw2" x1="0" x2="1"><stop offset="0" stop-color="#2d6bff" stop-opacity=".7"/><stop offset=".5" stop-color="#7a4dff" stop-opacity=".15"/><stop offset="1" stop-color="#ff6fa0" stop-opacity=".6"/></linearGradient>
+    <filter id="soft"><feGaussianBlur stdDeviation="1.4"/></filter>
+  </defs>
+  <symbol id="i-bars" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 10v4M7 7v10M11 4v16M15 8v8M19 6v12M23 10v4"/></symbol>
+  <symbol id="i-cloud" viewBox="0 0 24 24" fill="currentColor"><path d="M19.35 10.04A7.49 7.49 0 0 0 12 4C9.11 4 6.6 5.64 5.35 8.04A5.994 5.994 0 0 0 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5h4.2l2 2.2h8.8A1.5 1.5 0 0 1 21 8.7v9.8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5z"/></symbol>
+  <symbol id="i-note" viewBox="0 0 24 24" fill="currentColor"><path d="M10 3v11.55A4 4 0 1 0 12 18V8h6V3z"/></symbol>
+  <symbol id="i-notes" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></symbol>
+  <symbol id="i-mic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3" fill="currentColor"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M9 21h6"/></symbol>
+  <symbol id="i-loop" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 8a8 8 0 0 0-14.3-2.3M4 4v4h4M4 16a8 8 0 0 0 14.3 2.3M20 20v-4h-4"/></symbol>
+  <symbol id="i-sort" viewBox="0 0 34 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 6h14M3 12h10M3 18h14M24 10l3.5 3.5L31 10"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 20h14"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15l12.5-7.5z"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24" fill="currentColor"><path d="M6.5 4h4v16h-4zm7 0h4v16h-4z"/></symbol>
+  <symbol id="i-mute" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="m16 9 5 6m0-6-5 6"/></symbol>
+  <symbol id="i-vol" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></symbol>
+  <symbol id="i-head" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 15v-3a8 8 0 0 1 16 0v3"/><rect x="3" y="14" width="5" height="7" rx="2" fill="currentColor"/><rect x="16" y="14" width="5" height="7" rx="2" fill="currentColor"/></symbol>
+  <symbol id="i-dots" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></symbol>
+  <symbol id="i-reset" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 0 2.3-5.6M4 4v4h4"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></symbol>
+  <symbol id="i-updown" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 20V4M3 8l4-4 4 4M17 4v16m-4-4 4 4 4-4"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-arrowdown" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14m-5-5 5 5 5-5"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-layers" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="m12 3 9 5-9 5-9-5z"/><path d="m3 12 9 5 9-5M3 16l9 5 9-5"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v6m0 4v.01"/></symbol>
+</svg>
+
+<template id="waves">
+  <svg viewBox="0 0 1300 560" preserveAspectRatio="none">
+    <path d="M0 260 C 180 120, 320 120, 470 230 S 820 360, 980 150 S 1220 60, 1300 120 L1300 0 L0 0Z" fill="#2b2470" opacity=".25"/>
+    <path d="M-20 300 C 160 140, 330 150, 480 260 S 830 380, 990 170 S 1230 90, 1320 300" stroke="url(#gw1)" stroke-width="3" fill="none" filter="url(#soft)"/>
+    <path d="M-20 340 C 140 260, 260 300, 420 520" stroke="url(#gw2)" stroke-width="2.2" fill="none" filter="url(#soft)"/>
+    <path d="M1320 290 C 1200 300, 1120 360, 1040 440" stroke="#ff9a3c" stroke-opacity=".75" stroke-width="2.2" fill="none" filter="url(#soft)"/>
+  </svg>
+</template>
+
+<div class="app">
+  <aside>
+    <a class="brand" href="#/"><img class="mark" src="/static/mark.png" alt=""><span>Goni<span class="lift">lift</span></span></a>
+    <div class="drop" id="drop">
+      <div class="upicon"><svg><use href="#i-cloud"/></svg></div>
+      <strong>Drop a song here</strong>
+      <span class="types">MP3, WAV, M4A, FLAC</span>
+      <button class="cta" id="pick"><svg class="i"><use href="#i-folder"/></svg>Choose file</button>
+      <input type="file" id="file" accept="audio/*,video/mp4,.m4a,.flac,.opus" multiple hidden>
+    </div>
+    <div class="lib-head"><span class="lib-title">Your songs</span><button id="libLink" title="Open the All Songs page" aria-label="Open the All Songs page"><svg viewBox="0 0 34 24" width="34" height="20"><path d="M3 6h14M3 12h10M3 18h14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M23 7h8v8M31 7l-8.5 8.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div>
+    <div id="sideAll"></div>
+    <div class="side-list" id="side"></div>
+  </aside>
+
+  <main>
+    <!-- HOME -->
+    <section class="view hero" id="v-home">
+      <div class="hero-art"><div class="waves-slot"></div><canvas class="bars" data-env="3.2"></canvas></div>
+      <h1>Practice with <span class="gradtext">any song</span></h1>
+      <p>Drop a song on the left. It is split into a vocal track and a backing track on this PC, then you can mute the singer, change the key and loop the hard parts.</p>
+      <div class="features">
+        <div class="feature t-voc shine"><div class="ficon"><svg><use href="#i-mic"/></svg></div><div><h3>Vocals</h3><p>Separate the vocal track and practice without the singer.</p></div></div>
+        <div class="feature t-bak shine"><div class="ficon"><svg><use href="#i-bars"/></svg></div><div><h3>Backing Track</h3><p>Get a clean instrumental backing track.</p></div></div>
+        <div class="feature t-key shine"><div class="ficon"><svg><use href="#i-note"/></svg></div><div><h3>Key Change</h3><p>Change the key to fit your range.</p></div></div>
+        <div class="feature t-loop shine"><div class="ficon"><svg><use href="#i-loop"/></svg></div><div><h3>Loop</h3><p>Loop the hard parts and practice at your own pace.</p></div></div>
+      </div>
+    </section>
+
+    <!-- PROCESSING -->
+    <section class="view proc hidden" id="v-proc">
+      <div class="deco" style="width:100%;height:360px"><div class="waves-slot"></div></div>
+      <canvas class="bars bars-top" data-env="2.6"></canvas>
+      <div class="proc-card">
+        <div class="ring">
+          <svg viewBox="0 0 220 220"><circle cx="110" cy="110" r="96" fill="none" stroke="#ffffff14" stroke-width="12"/><circle id="ringArc" cx="110" cy="110" r="96" fill="none" stroke="url(#ringGrad)" stroke-width="12" stroke-linecap="round" stroke-dasharray="603.2" stroke-dashoffset="603.2" style="transition:stroke-dashoffset .6s ease"/></svg>
+          <div class="pct"><span><span id="pctNum">0</span><small>%</small></span></div>
+        </div>
+        <h2 id="procTitle">Splitting track...</h2>
+        <div class="sub" id="procSub">Analyzing vocals and instrumentals</div>
+        <div class="steps" id="steps">
+          <div class="step-i"><div class="node"><svg><use href="#i-check"/></svg></div><b>Upload complete</b><small>File received and verified</small></div>
+          <div class="step-i"><div class="node"><svg><use href="#i-check"/></svg></div><b>Detecting stems</b><small>Loading the AI model</small></div>
+          <div class="step-i"><div class="node"><svg><use href="#i-bars"/></svg></div><b>Separating vocals</b><small>Extracting vocals and instrumentals</small></div>
+          <div class="step-i"><div class="node"></div><b>Preparing tracks</b><small>Finalizing and optimizing audio</small></div>
+        </div>
+        <div class="filebar">
+          <div class="ic"><svg><use href="#i-notes"/></svg></div>
+          <div class="txt"><b id="procName"></b><small id="procMeta"></small></div>
+          <button class="btn" id="procCancel"><svg class="i"><use href="#i-x"/></svg>Cancel</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- PLAYER -->
+    <section class="view player hidden" id="v-player">
+      <div class="deco" style="width:60%;height:240px"><div class="waves-slot"></div></div>
+      <div class="p-head">
+        <div class="cover" id="pCover"><svg><use href="#i-note"/></svg></div>
+        <div class="info">
+          <h1 id="pTitle"></h1>
+          <div class="metaline" id="pMeta"></div>
+          <div class="row"><span class="pill ok"><svg><use href="#i-check"/></svg>Split complete</span><span class="sep"></span><span>Your tracks are ready to play, adjust and export.</span></div>
+        </div>
+        <div class="p-actions">
+          <button class="btn again" id="again"><svg class="i"><use href="#i-cloud"/></svg>Split another song</button>
+          <button class="btn dl" id="dlBtn"><svg class="i"><use href="#i-down"/></svg>Download<svg class="i chev"><use href="#i-chev"/></svg></button>
+        </div>
+      </div>
+
+      <div class="track card t-voc shine" data-stem="vocals">
+        <div class="t-top">
+          <div class="ficon t-voc"><svg><use href="#i-mic"/></svg></div>
+          <div class="grow"><h3>Vocals</h3><p>Isolated vocal track</p></div>
+          <button class="tbtn mute"><svg><use href="#i-mute"/></svg>Mute</button>
+          <button class="tbtn solo"><svg><use href="#i-head"/></svg>Solo</button>
+          <button class="more" data-menu="vocals"><svg class="i"><use href="#i-dots"/></svg></button>
+        </div>
+        <div class="twave"><canvas></canvas><div class="ph"></div></div>
+        <div class="t-bottom">
+          <button class="bigplay"><svg><use href="#i-play"/></svg></button>
+          <span class="clock">0:00 / 0:00</span>
+          <input type="range" class="seek" min="0" max="1000" value="0">
+          <div class="volwrap"><svg class="i"><use href="#i-vol"/></svg><input type="range" class="vol" min="0" max="100" value="100"><span>100%</span></div>
+        </div>
+      </div>
+
+      <div class="track card t-bak shine" data-stem="backing">
+        <div class="t-top">
+          <div class="ficon t-bak"><svg><use href="#i-bars"/></svg></div>
+          <div class="grow"><h3>Backing Track</h3><p>Instrumental track (no vocals)</p></div>
+          <button class="tbtn mute"><svg><use href="#i-mute"/></svg>Mute</button>
+          <button class="tbtn solo"><svg><use href="#i-head"/></svg>Solo</button>
+          <button class="more" data-menu="backing"><svg class="i"><use href="#i-dots"/></svg></button>
+        </div>
+        <div class="twave"><canvas></canvas><div class="ph"></div></div>
+        <div class="t-bottom">
+          <button class="bigplay"><svg><use href="#i-play"/></svg></button>
+          <span class="clock">0:00 / 0:00</span>
+          <input type="range" class="seek" min="0" max="1000" value="0">
+          <div class="volwrap"><svg class="i"><use href="#i-vol"/></svg><input type="range" class="vol" min="0" max="100" value="100"><span>100%</span></div>
+        </div>
+      </div>
+
+      <div class="bottom2">
+        <div class="card kcard shine">
+          <div class="chead">
+            <div class="ficon t-key"><svg><use href="#i-note"/></svg></div>
+            <div class="grow"><h3>Key Change</h3><p>Change the key to fit your range.</p></div>
+            <div class="keystate"><span id="keyLabel">0 semitones (Original)</span><button id="keyReset" title="Back to original"><svg class="i"><use href="#i-reset"/></svg></button></div>
+          </div>
+          <div class="keys" id="keys"></div>
+          <div class="note-busy" id="keyBusy"></div>
+        </div>
+        <div class="card lcard shine">
+          <div class="chead">
+            <div class="ficon t-loop"><svg><use href="#i-loop"/></svg></div>
+            <div class="grow"><h3>Loop</h3><p>Loop the hard parts and practice at your own pace.</p></div>
+            <button class="toggle" id="loopToggle"><span class="switch" id="loopSwitch"></span><span id="loopLabel">Loop off</span></button>
+          </div>
+          <div class="lrow">
+            <div class="lwave" id="lwave"><canvas></canvas><div class="handle" id="hA"><i></i></div><div class="handle" id="hB"><i></i></div></div>
+            <button class="iconbtn" id="loopPlay" title="Play the loop"><svg class="i"><use href="#i-play"/></svg></button>
+          </div>
+          <div class="ltimes"><span id="tA">0:00.0</span>–<span id="tB">0:00.0</span>
+            <div class="speed">Speed <button id="slower">−</button><b id="speedVal">1.00×</b><button id="faster">+</button></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- LIBRARY -->
+    <section class="view library hidden" id="v-library">
+      <div class="deco"><div class="waves-slot"></div><canvas class="bars" data-env="2.4"></canvas></div>
+      <h1>Your <span class="gradtext">Songs</span></h1>
+      <p class="lead">Manage and split your tracks with AI-powered stem separation.</p>
+      <div class="card toolbar">
+        <label class="search"><svg class="i"><use href="#i-search"/></svg><input id="q" placeholder="Search songs..." autocomplete="off"></label>
+        <div style="display:flex;gap:12px;flex-wrap:wrap" id="filters">
+          <button class="fchip on" data-f="all">All</button>
+          <button class="fchip" data-f="ready">Completed</button>
+          <button class="fchip" data-f="working">Processing</button>
+          <button class="fchip" data-f="queued">Queued</button>
+          <button class="fchip" data-f="failed">Failed</button>
+          <button class="fchip clearbtn" id="clearBtn" disabled title="Tick songs in the list to clear them"><svg class="i" style="width:17px;height:17px"><use href="#i-trash"/></svg><span id="clearLabel">Clear</span></button>
+        </div>
+        <label class="sortsel"><svg class="i"><use href="#i-updown"/></svg>
+          <select id="sort">
+            <option value="new">Date added (newest)</option>
+            <option value="old">Date added (oldest)</option>
+            <option value="az">Title (A to Z)</option>
+            <option value="len">Duration (longest)</option>
+          </select><svg class="i chev"><use href="#i-chev"/></svg></label>
+      </div>
+      <div class="card table">
+        <div class="thead"><label class="tick" title="Select all shown"><input type="checkbox" id="tickAll" aria-label="Select all shown songs"><span></span></label><span>Song</span><span class="c-wave"></span><span>Duration</span><span>Status</span><span class="c-date" style="display:flex;align-items:center;gap:6px">Date added <svg class="i" style="width:16px"><use href="#i-arrowdown"/></svg></span><span class="act">Actions</span></div>
+        <div id="rows"></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="modal-back hidden" id="modal"></div>
+<div class="tip" id="tip" role="tooltip"></div>
+<div class="credit">© 2026 <b>Joemark Basa</b></div>
+
+<audio id="aVocals" preload="auto"></audio>
+<audio id="aBacking" preload="auto"></audio>
+
+<script>
+const $ = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+const icon = (id, cls = "i") => `<svg class="${cls}"><use href="#${id}"/></svg>`;
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const fmt = t => isFinite(t) && t > 0 ? `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, "0")}` : "0:00";
+const fmt1 = t => `${Math.floor(t / 60)}:${(t % 60).toFixed(1).padStart(4, "0")}`;
+const mb = b => b ? `${(b / 1048576).toFixed(1)} MB` : "";
+const api = async (url, opts) => { const r = await fetch(url, opts); if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail || r.statusText); return r.json(); };
+
+let songs = [];
+const ui = { filter: "all", sort: "new", q: "", selected: new Set() }; // selected: ticked songs in the library
+
+// ================= decoration =================
+for (const slot of $$(".waves-slot")) slot.replaceWith($("#waves").content.cloneNode(true));
+
+(function stars() {
+  const c = $("#stars"), dpr = devicePixelRatio || 1;
+  const draw = () => {
+    c.width = innerWidth * dpr; c.height = innerHeight * dpr;
+    const g = c.getContext("2d"); g.scale(dpr, dpr);
+    let s = 7;
+    const rnd = () => (s = (s * 16807) % 2147483647) / 2147483647;
+    for (let i = 0; i < 160; i++) {
+      const x = rnd() * innerWidth, y = rnd() * innerHeight, r = rnd() * 1.2 + .2;
+      g.globalAlpha = rnd() * .5 + .1;
+      g.fillStyle = rnd() > .85 ? "#ffb6e0" : rnd() > .7 ? "#9fb8ff" : "#fff";
+      g.beginPath(); g.arc(x, y, r, 0, 7); g.fill();
+    }
+  };
+  draw(); addEventListener("resize", draw);
+})();
+
+// Glowing equalizer bars used on the home, processing and library screens.
+(function bars() {
+  const stops = ["#7b3dff", "#c64dff", "#ff4fa3", "#ff9a3c", "#ff4fa3", "#8f5bff", "#3d7bff"];
+  const n = 72, seed = Array.from({ length: n }, (_, i) => 0.35 + 0.65 * Math.abs(Math.sin(i * 12.9898) * 43758.5453 % 1));
+  function frame(t) {
+    for (const c of $$("canvas.bars")) {
+      if (!c.offsetParent) continue;
+      const w = c.clientWidth, h = c.clientHeight, dpr = devicePixelRatio || 1, spread = +c.dataset.env || 3;
+      if (c.width !== Math.round(w * dpr)) { c.width = w * dpr; c.height = h * dpr; }
+      const g = c.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, w, h);
+      const grad = g.createLinearGradient(0, 0, w, 0);
+      stops.forEach((s, i) => grad.addColorStop(i / (stops.length - 1), s));
+      const gap = w / n, bw = Math.max(2.5, gap * 0.32), mid = h / 2;
+      for (let i = 0; i < n; i++) {
+        const x = (i + 0.5) * gap, d = (i - n / 2) / (n / 2), env = Math.exp(-d * d * spread);
+        const bh = Math.max(bw, h * 0.92 * env * seed[i] * (0.85 + 0.15 * Math.sin(t / 700 + i * 0.6)));
+        g.globalAlpha = 0.35 + 0.65 * env;
+        g.shadowColor = i > n * 0.35 && i < n * 0.65 ? "#ff8a5c" : "#9b5cff"; g.shadowBlur = 18 * env;
+        g.fillStyle = grad; g.beginPath(); g.roundRect(x - bw / 2, mid - bh / 2, bw, bh, bw / 2); g.fill();
+      }
+    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+
+// Glass shine follows the mouse; every button bounces when clicked.
+document.addEventListener("pointermove", e => {
+  const el = e.target.closest?.(".shine");
+  if (!el) return;
+  const r = el.getBoundingClientRect();
+  el.style.setProperty("--mx", `${e.clientX - r.left}px`);
+  el.style.setProperty("--my", `${e.clientY - r.top}px`);
+});
+document.addEventListener("pointerdown", e => {
+  const b = e.target.closest("button, .fchip, a.btn, .sitem, .navall");
+  if (!b || b.disabled) return;
+  b.classList.remove("pop"); void b.offsetWidth; b.classList.add("pop");
+});
+document.addEventListener("animationend", e => e.target.classList.remove("pop"));
+
+// Full title in a small note beside the mouse, only when the title is cut
+// off with "…". Lists rebuild every second while a song splits, so the note
+// re-checks what is under the mouse instead of holding on to an element.
+(function titleTips() {
+  const TITLES = ".sitem b, .trow .song b, .p-head h1, .filebar b";
+  const tip = $("#tip");
+  let timer = 0, x = 0, y = 0;
+  const place = () => {
+    const w = tip.offsetWidth, h = tip.offsetHeight;
+    tip.style.left = `${Math.min(x + 14, innerWidth - w - 8)}px`;
+    tip.style.top = `${y + 20 + h > innerHeight - 8 ? y - h - 12 : y + 20}px`;
+  };
+  const hide = () => { clearTimeout(timer); timer = 0; tip.classList.remove("show"); tip.dataset.for = ""; };
+  document.addEventListener("pointermove", e => {
+    x = e.clientX; y = e.clientY;
+    const el = e.target.closest?.(TITLES);
+    const cut = el && el.scrollWidth > el.clientWidth + 1;
+    if (!cut || $(".menu") || !$("#modal").classList.contains("hidden")) return hide();
+    const text = el.textContent.trim();
+    if (tip.classList.contains("show") && tip.textContent === text) return place();
+    clearTimeout(timer);
+    timer = setTimeout(() => { tip.textContent = text; tip.classList.add("show"); place(); }, 250);
+  });
+  for (const ev of ["pointerdown", "wheel", "keydown", "blur"]) addEventListener(ev, hide, true);
+  document.addEventListener("pointerleave", hide);
+  $("#side").addEventListener("scroll", hide);
+})();
+
+// Album art, or a gradient tile picked from the song id when there is none.
+const TILES = [["#ff6fa0", "#7b3dff"], ["#3d7bff", "#1b1f6b"], ["#ff9a3c", "#c43a7f"], ["#a656ff", "#2a46b8"], ["#2fd6c4", "#3d4dff"], ["#ff4f6b", "#5b2fd6"]];
+function cover(el, s) {
+  const [a, b] = TILES[parseInt(s.id.slice(0, 4), 16) % TILES.length];
+  el.style.backgroundImage = s.cover ? `url(/api/song/${s.id}/cover)` : `radial-gradient(circle at 30% 25%, #ffffff40, transparent 45%), linear-gradient(135deg, ${a}, ${b})`;
+  el.classList.toggle("has-art", !!s.cover);
+}
+const coverHtml = s => `<div class="cover" data-cover="${s.id}">${icon("i-note", "")}</div>`;
+function fillCovers(root) { for (const el of $$("[data-cover]", root)) cover(el, songs.find(s => s.id === el.dataset.cover)); }
+
+function whenAdded(s) {
+  if (!s) return "";
+  const d = new Date(s.replace(" ", "T")), now = new Date();
+  const time = d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  const days = Math.round((new Date(now.toDateString()) - new Date(d.toDateString())) / 864e5);
+  if (days === 0) return `Today, ${time}`;
+  if (days === 1) return `Yesterday, ${time}`;
+  return d.toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" });
+}
+// The lists are rebuilt on every progress update, which used to restart each
+// spinner from the top. Pinning every spinner to the page's time zero means a
+// rebuilt spinner shows the same angle as the one it replaced, so it keeps
+// turning smoothly (verified in headless Edge: 93deg before, 93deg after).
+const spinHtml = () => `<span class="spin"></span>`;
+function syncSpinners(root) {
+  for (const el of $$(".spin", root)) for (const a of el.getAnimations()) a.startTime = 0;
+}
+
+const pct = s => s.state === "ready" ? 100 : s.state !== "working" ? 0 :
+  Math.round(s.stage <= 1 ? 6 : s.stage === 2 ? 8 + (s.progress || 0) * 0.88 : 98);
+
+// ================= data + routing =================
+async function refresh() {
+  songs = await api("/api/songs");
+  renderSide();
+  const r = route();
+  if (r.view === "library") renderLibrary();
+  if (r.view === "proc") renderProc(r.id);
+  clearTimeout(refresh.t);
+  if (songs.some(s => s.state === "queued" || s.state === "working")) refresh.t = setTimeout(refresh, 1200);
+}
+
+function route() {
+  const [, view, id] = location.hash.split("/");
+  return { view: view === "song" ? "player" : view === "split" ? "proc" : view === "songs" ? "library" : "home", id };
+}
+function go(hash) { if (location.hash === hash) show(); else location.hash = hash; }
+
+async function show() {
+  const r = route();
+  for (const v of ["home", "proc", "player", "library"]) $(`#v-${v}`).classList.toggle("hidden", v !== r.view);
+  if (r.view !== "player") pause();
+  if (r.view === "library") renderLibrary();
+  if (r.view === "proc") renderProc(r.id);
+  if (r.view === "player") await openSong(r.id);
+  renderSide();
+  scrollTo(0, 0);
+}
+addEventListener("hashchange", show);
+
+// ================= sidebar =================
+// "All Songs" hides and shows the song list under it; the choice is
+// remembered for next time (a per-browser convenience, so it may reset).
+// The small icon beside "Your songs" opens the All Songs page.
+let sideOpen = true, sideAnim = 0;
+try { sideOpen = localStorage.getItem("gonilift.sideOpen") !== "0"; } catch {}
+function setSideOpen(open, animate = false) {
+  const side = $("#side"), changed = open !== sideOpen;
+  sideOpen = open;
+  try { localStorage.setItem("gonilift.sideOpen", open ? "1" : "0"); } catch {}
+  const pill = $("#sideAll .navall");
+  pill?.classList.toggle("collapsed", !open);
+  pill?.setAttribute("aria-expanded", open);
+  if (pill) pill.title = open ? "Hide the song list" : "Show the song list";
+  if (!animate || !changed) { if (!sideAnim) side.classList.toggle("hidden", !open); return; }
+  clearTimeout(sideAnim);
+  const n = $$(".sitem", side).length;
+  side.style.setProperty("--n", n);
+  side.classList.remove("reveal", "conceal");
+  if (open) {
+    side.classList.remove("hidden");
+    void side.offsetWidth; side.classList.add("reveal");
+    sideAnim = setTimeout(() => { side.classList.remove("reveal"); sideAnim = 0; }, n * 60 + 550);
+  } else {
+    side.classList.add("conceal");
+    sideAnim = setTimeout(() => { side.classList.remove("conceal"); side.classList.add("hidden"); sideAnim = 0; }, n * 35 + 300);
+  }
+}
+$("#libLink").onclick = () => go("#/songs");
+$("#sideAll").onclick = e => { if (e.target.closest(".navall")) setSideOpen(!sideOpen, true); };
+
+function renderSide() {
+  const r = route(), side = $("#side");
+  $("#sideAll").innerHTML = songs.length ? `<button class="navall" aria-expanded="${sideOpen}" aria-controls="side">${icon("i-notes", "")}All Songs<span class="count">${songs.length}</span><svg class="pchev"><use href="#i-chev"/></svg></button>` : "";
+  setSideOpen(sideOpen);
+  if (!songs.length) {
+    side.innerHTML = `<div class="lib-empty"><div class="note">${icon("i-note", "")}</div><b>No songs yet.</b><span>Drop a song or choose a file to get started.</span></div>`;
+    side.classList.remove("hidden");
+    return;
+  }
+  const menuFor = $(".menu")?.dataset.for; // keep an open song menu's dots showing across rebuilds
+  const list = songs.map((s, i) => {
+    const active = (r.view === "player" || r.view === "proc") && r.id === s.id;
+    const busy = s.state === "working" || s.state === "queued";
+    const sub = s.state === "working" ? `Processing... ${pct(s)}%` : s.state === "queued" ? "Waiting in line" : s.state === "failed" ? "Failed" : esc(s.artist || s.format);
+    return `<div class="sitem shine ${active ? "active" : ""} ${menuFor === s.id ? "menu-open" : ""}" role="button" tabindex="0" data-id="${s.id}" style="--i:${i}">
+      <div class="cover" data-cover="${s.id}" style="width:56px;height:56px">${icon("i-note", "")}</div>
+      <div class="txt"><b>${esc(s.title)}</b><small>${sub}</small></div>${busy ? spinHtml() : ""}
+      <button class="sdots" data-act="menu" title="More" aria-label="More options for ${esc(s.title)}">${icon("i-dots", "")}</button></div>`;
+  }).join("");
+  side.innerHTML = list;
+  fillCovers(side);
+  syncSpinners(side);
+}
+$("#side").addEventListener("click", e => {
+  const item = e.target.closest(".sitem");
+  if (!item) return;
+  if (e.target.closest("[data-act=menu]")) return openSongMenu(e.target.closest("[data-act=menu]"), item.dataset.id, "side");
+  openFromList(item.dataset.id);
+});
+$("#side").addEventListener("keydown", e => {
+  const item = e.target.closest(".sitem");
+  if (item && e.target === item && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); openFromList(item.dataset.id); }
+});
+function openFromList(id) {
+  const s = songs.find(x => x.id === id);
+  go(s && s.state === "ready" ? `#/song/${id}` : s && s.state !== "failed" ? `#/split/${id}` : "#/songs");
+}
+
+// ================= upload =================
+async function upload(files) {
+  let first = null;
+  for (const file of files) {
+    const body = new FormData(); body.append("file", file);
+    try { const { id } = await api("/api/split", { method: "POST", body }); first ??= id; }
+    catch (e) { alert(`${file.name}: ${e.message}`); }
+  }
+  await refresh();
+  if (first) openFromList(first);
+}
+$("#pick").onclick = () => $("#file").click();
+$("#file").onchange = e => { if (e.target.files.length) upload([...e.target.files]); e.target.value = ""; };
+["dragenter", "dragover"].forEach(ev => document.addEventListener(ev, e => { e.preventDefault(); $("#drop").classList.add("over"); }));
+["dragleave", "drop"].forEach(ev => document.addEventListener(ev, e => { e.preventDefault(); $("#drop").classList.remove("over"); }));
+document.addEventListener("drop", e => e.dataTransfer.files.length && upload([...e.dataTransfer.files]));
+
+// ================= processing =================
+function renderProc(id) {
+  const s = songs.find(x => x.id === id);
+  if (!s) { go("#/songs"); return; }
+  if (s.state === "ready") { go(`#/song/${id}`); return; }
+  const p = s.state === "failed" ? 0 : pct(s);
+  $("#pctNum").textContent = p;
+  $("#ringArc").style.strokeDashoffset = 603.2 * (1 - p / 100);
+  $("#procTitle").textContent = s.state === "failed" ? "Split failed" : s.state === "queued" ? "Waiting in line..." : "Splitting track...";
+  $("#procSub").textContent = s.state === "failed" ? s.message : s.state === "queued" ? "Another song is being split first" :
+    ["Getting ready", "Loading the AI model", "Analyzing vocals and instrumentals", "Finalizing and optimizing audio"][s.stage] || "";
+  const stage = s.state === "queued" ? 0 : s.state === "working" ? s.stage : -1;
+  $$("#steps .step-i").forEach((el, i) => {
+    const step = i + 1; // step 1 = upload, done once the file is in
+    el.classList.toggle("done", step === 1 ? true : step < stage || (step === 2 && stage > 1));
+    el.classList.toggle("active", s.state === "working" && ((step === 2 && stage === 1) || (step === 3 && stage === 2) || (step === 4 && stage === 3)));
+  });
+  $("#procName").textContent = s.filename || s.title;
+  $("#procMeta").textContent = [fmt(s.duration), s.format, mb(s.size)].filter(Boolean).join("  •  ");
+  $("#procCancel").innerHTML = s.state === "failed" ? `${icon("i-reset")}Try again` : `${icon("i-x")}Cancel`;
+  $("#procCancel").onclick = s.state === "failed"
+    ? async () => { await api(`/api/song/${id}/retry`, { method: "POST" }); refresh(); }
+    : async () => { if (await cancelSplit(id)) go("#/"); };
+}
+
+// ================= player =================
+const audio = { vocals: $("#aVocals"), backing: $("#aBacking") };
+for (const a of Object.values(audio)) a.preservesPitch = true;
+const P = { id: null, pitch: 0, speed: 1, peaks: null, vol: { vocals: 1, backing: 1 }, mute: { vocals: false, backing: false }, solo: null, loop: { a: 0, b: 0, on: false } };
+const master = () => audio.backing;
+const dur = () => master().duration || 0;
+const stemUrl = (stem, dl) => `/api/stem/${P.id}/${stem}?pitch=${P.pitch}${dl ? "&download=true" : ""}`;
+
+async function openSong(id) {
+  const s = songs.find(x => x.id === id) || await api(`/api/song/${id}`).catch(() => null);
+  if (!s || s.state !== "ready") { go(s ? `#/split/${id}` : "#/"); return; }
+  if (P.id === id) return;
+  pause();
+  Object.assign(P, { id, pitch: 0, peaks: null, loop: { a: 0, b: 0, on: false } });
+  cover($("#pCover"), s);
+  $("#pTitle").textContent = s.title;
+  $("#pMeta").textContent = [s.artist, s.format, fmt(s.duration)].filter(Boolean).join("  •  ");
+  renderKeys(); updateLoop();
+  P.peaks = await api(`/api/song/${id}/peaks`).catch(() => null);
+  await setSources(0);
+  P.loop = { a: dur() * 0.25, b: dur() * 0.4, on: false };
+  updateLoop(); drawAll();
+}
+
+async function setSources(at) {
+  const wasPlaying = !master().paused;
+  pause();
+  await Promise.all(Object.entries(audio).map(([stem, a]) => new Promise((ok, fail) => {
+    a.src = stemUrl(stem);
+    a.onloadedmetadata = () => { a.currentTime = at; ok(); };
+    a.onerror = () => fail(new Error("Could not load the " + stem + " track"));
+  })));
+  for (const a of Object.values(audio)) a.playbackRate = P.speed;
+  applyMix();
+  if (wasPlaying) play();
+}
+
+function play() {
+  if (!P.id) return;
+  const t = master().currentTime;
+  for (const a of Object.values(audio)) { a.currentTime = t; a.play(); }
+  setPlayIcons(true);
+}
+function pause() { for (const a of Object.values(audio)) a.pause(); setPlayIcons(false); }
+function setPlayIcons(on) { for (const b of $$(".bigplay")) b.innerHTML = icon(on ? "i-pause" : "i-play", ""); }
+function seek(t) { t = Math.max(0, Math.min(t, dur())); for (const a of Object.values(audio)) a.currentTime = t; drawAll(); }
+master().addEventListener("ended", () => setPlayIcons(false));
+for (const b of $$(".bigplay")) b.onclick = () => master().paused ? play() : pause();
+
+// waveforms
+function drawWave(canvas, data, colors, from = 0, to = 1, played = 0, step = 3.2) {
+  const w = canvas.clientWidth, h = canvas.clientHeight, dpr = devicePixelRatio || 1;
+  if (!w) return;
+  canvas.width = w * dpr; canvas.height = h * dpr;
+  const g = canvas.getContext("2d"); g.scale(dpr, dpr);
+  if (!data) return;
+  const n = Math.min(Math.floor(w / step), data.length), mid = h / 2;
+  const grad = g.createLinearGradient(0, 0, w, 0);
+  colors.forEach((c, i) => grad.addColorStop(i / (colors.length - 1), c));
+  for (let i = 0; i < n; i++) {
+    const f = i / n, j = Math.floor(f * data.length), v = Math.max(data.slice(j, j + Math.ceil(data.length / n)).reduce((m, x) => Math.max(m, x), 0), .04);
+    const bh = v * h * 0.9, x = i * (w / n);
+    const inLoop = f >= from && f <= to;
+    g.globalAlpha = (from > 0 || to < 1) ? (inLoop ? 1 : .3) : (f <= played ? 1 : .78);
+    g.shadowColor = colors[1]; g.shadowBlur = f <= played ? 8 : 2;
+    const bw = Math.max(1.6, step > 4 ? 2.4 : w / n - 1.6);
+    g.fillStyle = grad; g.beginPath(); g.roundRect(x, mid - bh / 2, bw, bh, bw / 2); g.fill();
+  }
+}
+function drawAll() {
+  if (!P.peaks) return;
+  const played = dur() ? master().currentTime / dur() : 0;
+  drawWave($('.t-voc .twave canvas'), P.peaks.vocals, ["#ff4fa3", "#ff4fa3", "#a656ff", "#7b3dff"], 0, 1, played);
+  drawWave($('.t-bak .twave canvas'), P.peaks.backing, ["#3d5bff", "#4d8bff", "#3fd0ff", "#3d7bff"], 0, 1, played);
+  const d = dur() || 1;
+  drawWave($("#lwave canvas"), P.peaks.backing.map((v, i) => Math.max(v, P.peaks.vocals[i])), ["#a36a3a", "#ff9a3c", "#ffb347"], P.loop.a / d, P.loop.b / d);
+}
+// Redraw whenever a waveform box changes size (window resized, or moved to a
+// monitor of another size); the window "resize" event alone can miss this.
+const waveSizer = new ResizeObserver(() => drawAll());
+for (const el of $$(".twave, #lwave")) waveSizer.observe(el);
+addEventListener("resize", drawAll);
+// Backstop for browsers that hold back resize notifications (background
+// windows): redraw only when a waveform no longer matches its box.
+setInterval(() => {
+  if (!P.peaks || $("#v-player").classList.contains("hidden")) return;
+  const dpr = devicePixelRatio || 1;
+  const stale = $$(".twave canvas, #lwave canvas").some(c => c.clientWidth && Math.abs(c.width - c.clientWidth * dpr) > 1);
+  if (stale) drawAll();
+}, 400);
+
+// Runs every animation frame, and on the audio's own timeupdate as a backstop
+// for when the browser pauses animation frames (hidden or background tab).
+function tick() { update(); requestAnimationFrame(tick); }
+master().addEventListener("timeupdate", update);
+function update() {
+  const m = master(), d = dur();
+  if (P.id && d && !$("#v-player").classList.contains("hidden")) {
+    const t = m.currentTime;
+    for (const tr of $$(".track")) {
+      $(".clock", tr).textContent = `${fmt(t)} / ${fmt(d)}`;
+      $(".ph", tr).style.left = `${(t / d) * 100}%`;
+      const sk = $(".seek", tr);
+      if (document.activeElement !== sk) { sk.value = (t / d) * 1000; sk.style.setProperty("--val", `${(t / d) * 100}%`); }
+    }
+    if (P.loop.on && P.loop.b > P.loop.a && t >= P.loop.b) seek(P.loop.a);
+    // Keep the two tracks locked together.
+    if (!m.paused && Math.abs(audio.vocals.currentTime - t) > 0.04) audio.vocals.currentTime = t;
+    if (!m.paused) tick.n = (tick.n || 0) + 1;
+    if (!m.paused && tick.n % 6 === 0) drawAll();
+  }
+}
+requestAnimationFrame(tick);
+
+for (const tr of $$(".track")) {
+  const stem = tr.dataset.stem;
+  $(".mute", tr).onclick = () => { P.mute[stem] = !P.mute[stem]; applyMix(); };
+  $(".solo", tr).onclick = () => { P.solo = P.solo === stem ? null : stem; applyMix(); };
+  $(".vol", tr).oninput = e => { P.vol[stem] = e.target.value / 100; applyMix(); };
+  $(".seek", tr).oninput = e => seek((e.target.value / 1000) * dur());
+  $(".twave", tr).onclick = e => { const r = e.currentTarget.getBoundingClientRect(); seek(((e.clientX - r.left) / r.width) * dur()); };
+}
+function applyMix() {
+  for (const [stem, a] of Object.entries(audio)) a.volume = (P.solo ? P.solo === stem : !P.mute[stem]) ? P.vol[stem] : 0;
+  for (const tr of $$(".track")) {
+    const stem = tr.dataset.stem, v = Math.round(P.vol[stem] * 100), vol = $(".vol", tr);
+    $(".mute", tr).classList.toggle("on", P.mute[stem]);
+    $(".solo", tr).classList.toggle("on", P.solo === stem);
+    vol.value = v; vol.style.setProperty("--val", `${v}%`);
+    $(".volwrap span", tr).textContent = `${v}%`;
+  }
+}
+
+// key
+function renderKeys() {
+  $("#keys").innerHTML = Array.from({ length: 13 }, (_, i) => i - 6).map(k =>
+    `<button class="${k === P.pitch ? "on" : ""}" data-k="${k}">${k > 0 ? "+" + k : k < 0 ? "−" + -k : 0}</button>`).join("");
+  $("#keyLabel").textContent = P.pitch ? `${P.pitch > 0 ? "+" : "−"}${Math.abs(P.pitch)} semitone${Math.abs(P.pitch) > 1 ? "s" : ""}` : "0 semitones (Original)";
+}
+$("#keys").onclick = e => { const b = e.target.closest("button"); if (b) setKey(+b.dataset.k); };
+$("#keyReset").onclick = () => setKey(0);
+async function setKey(k) {
+  if (k === P.pitch) return;
+  P.pitch = k; renderKeys();
+  $("#keyBusy").textContent = k ? "Changing key... the first time for each key takes a few seconds." : "";
+  try { await setSources(master().currentTime); $("#keyBusy").textContent = ""; } catch (e) { $("#keyBusy").textContent = e.message; }
+}
+
+// speed
+function setSpeed(s) {
+  P.speed = Math.round(Math.max(0.5, Math.min(1.25, s)) * 100) / 100;
+  for (const a of Object.values(audio)) a.playbackRate = P.speed;
+  $("#speedVal").textContent = P.speed.toFixed(2) + "×";
+}
+$("#slower").onclick = () => setSpeed(P.speed - 0.05);
+$("#faster").onclick = () => setSpeed(P.speed + 0.05);
+
+// loop
+function updateLoop() {
+  const d = dur() || 1;
+  $("#hA").style.left = `${(P.loop.a / d) * 100}%`;
+  $("#hB").style.left = `${(P.loop.b / d) * 100}%`;
+  $("#tA").textContent = fmt1(P.loop.a); $("#tB").textContent = fmt1(P.loop.b);
+  $("#loopSwitch").classList.toggle("on", P.loop.on);
+  $("#loopLabel").textContent = P.loop.on ? "Loop on" : "Loop off";
+  drawAll();
+}
+$("#loopToggle").onclick = () => { P.loop.on = !P.loop.on; updateLoop(); };
+$("#loopPlay").onclick = () => { P.loop.on = true; updateLoop(); seek(P.loop.a); play(); };
+for (const h of [$("#hA"), $("#hB")]) {
+  h.onpointerdown = e => {
+    e.preventDefault(); h.setPointerCapture(e.pointerId);
+    const r = $("#lwave").getBoundingClientRect(), which = h.id === "hA" ? "a" : "b";
+    h.onpointermove = ev => {
+      const t = Math.max(0, Math.min(1, (ev.clientX - r.left) / r.width)) * dur();
+      if (which === "a") P.loop.a = Math.min(t, P.loop.b - 0.5); else P.loop.b = Math.max(t, P.loop.a + 0.5);
+      updateLoop();
+    };
+    h.onpointerup = () => { h.onpointermove = null; };
+  };
+}
+$("#lwave").addEventListener("click", e => {
+  if (e.target.closest(".handle")) return;
+  const r = e.currentTarget.getBoundingClientRect(), t = ((e.clientX - r.left) / r.width) * dur();
+  if (Math.abs(t - P.loop.a) < Math.abs(t - P.loop.b)) P.loop.a = Math.min(t, P.loop.b - 0.5); else P.loop.b = Math.max(t, P.loop.a + 0.5);
+  updateLoop();
+});
+
+$("#again").onclick = () => { pause(); go("#/"); $("#file").click(); };
+
+// ================= menus =================
+function openMenu(anchor, items) {
+  closeMenu();
+  const m = document.createElement("div");
+  m.className = "menu";
+  m.innerHTML = items.map(it => it.href
+    ? `<a href="${it.href}" download>${icon(it.icon)}${it.label}</a>`
+    : `<button class="${it.danger ? "danger" : ""}">${icon(it.icon)}${it.label}</button>`).join("");
+  $$("button", m).forEach((b, i) => b.onclick = () => { closeMenu(); items.filter(x => !x.href)[i].run(); });
+  $$("a", m).forEach(a => a.onclick = () => setTimeout(closeMenu));
+  document.body.append(m);
+  const r = anchor.getBoundingClientRect();
+  m.style.top = `${Math.min(r.bottom + 6, innerHeight - m.offsetHeight - 10)}px`;
+  m.style.left = `${Math.max(10, r.right - m.offsetWidth)}px`;
+  setTimeout(() => document.addEventListener("pointerdown", outside));
+}
+function outside(e) { if (!e.target.closest(".menu")) closeMenu(); }
+function closeMenu() {
+  $(".menu")?.remove(); document.removeEventListener("pointerdown", outside);
+  for (const el of $$(".sitem.menu-open")) el.classList.remove("menu-open");
+}
+
+for (const b of $$(".more")) b.onclick = () =>
+  openMenu(b, [{ icon: "i-trash", label: "Remove song", danger: true, run: () => removeSong(P.id) }]);
+
+// "Download all" saves two separate WAV files (no ZIP). The pause between
+// them keeps the browser from dropping the second one; the first time, the
+// browser may ask once to allow multiple downloads from this page.
+// In the desktop app (pywebview) files are saved straight to Downloads by the
+// app itself, then a pop-up offers "Show in folder"; in a browser they go
+// through the browser's own downloads.
+async function saveStems(id, stems, pitch = 0) {
+  const desk = window.pywebview?.api;
+  if (desk?.save) {
+    try {
+      const r = await desk.save(id, stems, pitch);
+      const names = r.files.map(f => `<li>${esc(f.split(/[\\/]/).pop())}</li>`).join("");
+      const choice = await glassDialog({ kind: "success", ok: "Done", extra: "Show in folder",
+        title: `Saved to <span class="green">Downloads</span>`,
+        body: `${r.files.length === 1 ? "Your track was" : "Your tracks were"} saved as separate WAV files:<ul>${names}</ul>` });
+      if (choice === "extra") desk.reveal(r.files[0]);
+    } catch (e) { glassDialog({ kind: "danger", ok: "OK", title: `<span class="red">Couldn't</span> save`, body: esc(e.message || e) }); }
+    return;
+  }
+  // Browser: separate WAV downloads, spaced out so the browser keeps both; the
+  // first time, it may ask once to allow multiple downloads from this page.
+  stems.forEach((stem, i) => setTimeout(() => {
+    const a = document.createElement("a");
+    a.href = `/api/stem/${id}/${stem}?pitch=${pitch}&download=true`; a.download = "";
+    document.body.append(a); a.click(); a.remove();
+  }, i * 1200));
+}
+const downloadAll = (id, pitch = 0) => saveStems(id, ["vocals", "backing"], pitch);
+
+// Downloads follow the key you are hearing; the file names say which key.
+$("#dlBtn").onclick = () => {
+  const key = P.pitch ? ` (${P.pitch > 0 ? "+" : ""}${P.pitch} st)` : "";
+  openMenu($("#dlBtn"), [
+    { icon: "i-layers", label: `Download all (vocals + backing)${key}`, run: () => downloadAll(P.id, P.pitch) },
+    { icon: "i-mic", label: `Vocals only${key}`, run: () => saveStems(P.id, ["vocals"], P.pitch) },
+    { icon: "i-bars", label: `Backing track only${key}`, run: () => saveStems(P.id, ["backing"], P.pitch) },
+  ]);
+};
+
+// ---------- glass pop-ups ----------
+// Resolves true when confirmed, false on Cancel, X, Escape or a click outside,
+// and "extra" for the optional extra button (e.g. "Show in folder").
+let dialogSeq = 0;
+function glassDialog({ kind, title, body, ok, cancel, extra }) {
+  return new Promise(resolve => {
+    const back = $("#modal"), mine = ++dialogSeq;
+    back.innerHTML = `<div class="modal ${kind}" role="dialog" aria-modal="true" aria-label="${esc(title.replace(/<[^>]+>/g, ""))}">
+      <button class="mclose" data-r="0" aria-label="Close">${icon("i-x")}</button>
+      <div class="mhead"><div class="mtile">${icon(kind === "danger" ? "i-trash" : "i-check", "")}</div><h2>${title}</h2></div>
+      <div class="mbody">${body}</div>
+      <div class="mfoot">${cancel ? `<button class="mbtn ghost" data-r="0">${cancel}</button>` : ""}${extra ? `<button class="mbtn ghost" data-r="extra">${icon("i-folder", "")}${extra}</button>` : ""}
+        <button class="mbtn ${kind === "danger" ? "red" : "done"}" data-r="1">${kind === "danger" ? icon("i-trash", "") : ""}${ok}</button></div></div>`;
+    back.classList.remove("hidden", "out");
+    const prevFocus = document.activeElement;
+    $(".mbtn[data-r='1']", back).focus();
+    const close = result => {
+      document.removeEventListener("keydown", onKey, true);
+      back.classList.add("out");
+      // Only clear the screen if no newer pop-up (e.g. "Track deleted") opened meanwhile.
+      setTimeout(() => { if (dialogSeq !== mine) return; back.classList.add("hidden"); back.innerHTML = ""; prevFocus?.focus?.(); }, 180);
+      resolve(result);
+    };
+    const onKey = e => {
+      if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); close(false); }
+      if (e.key === "Tab") { // keep focus inside the pop-up
+        const f = $$("button", back), i = f.indexOf(document.activeElement);
+        e.preventDefault(); f[(i + (e.shiftKey ? -1 : 1) + f.length) % f.length].focus();
+      }
+    };
+    document.addEventListener("keydown", onKey, true);
+    back.onclick = e => {
+      const b = e.target.closest("[data-r]");
+      if (b) close(b.dataset.r === "extra" ? "extra" : b.dataset.r === "1");
+      else if (e.target === back) close(false);
+    };
+  });
+}
+
+const songName = s => esc(s?.filename || s?.title || "this song");
+
+// Every delete goes through here: the trash icon, Clear, the sidebar menu and
+// the player menu. Songs still splitting are cancelled instead of deleted.
+async function deleteSongs(ids) {
+  const list = ids.map(id => songs.find(s => s.id === id)).filter(Boolean);
+  if (!list.length) return;
+  const one = list.length === 1;
+  const names = list.slice(0, 4).map(s => `<li>${songName(s)}</li>`).join("") + (list.length > 4 ? `<li>and ${list.length - 4} more</li>` : "");
+  const sure = await glassDialog({
+    kind: "danger", ok: "Delete", cancel: "Cancel",
+    title: `<span class="red">Delete</span> ${one ? "track" : `${list.length} tracks`}?`,
+    body: one ? `Are you sure you want to delete <b>“${songName(list[0])}”</b>?<br>This action cannot be undone.`
+              : `Are you sure you want to delete these tracks?<ul>${names}</ul><div class="soft">This action cannot be undone.</div>`,
+  });
+  if (!sure) return;
+  const failed = [];
+  for (const s of list) {
+    if (P.id === s.id) { pause(); P.id = null; }
+    const busy = s.state === "queued" || s.state === "working";
+    try { await api(`/api/song/${s.id}${busy ? "/cancel" : ""}`, { method: busy ? "POST" : "DELETE" }); }
+    catch (e) { failed.push(`${songName(s)}: ${esc(e.message)}`); }
+    ui.selected.delete(s.id);
+  }
+  await refresh();
+  const r = route();
+  if ((r.view === "player" || r.view === "proc") && ids.includes(r.id)) go("#/songs");
+  const done = list.length - failed.length;
+  await glassDialog({
+    kind: "success", ok: "Done",
+    title: `${done === 1 ? "Track" : `${done} tracks`} <span class="green">deleted</span>`,
+    body: (one ? `<b>“${songName(list[0])}”</b> has been successfully deleted from your library.`
+               : `${done} track${done === 1 ? " has" : "s have"} been successfully deleted from your library.`)
+      + (failed.length ? `<div class="soft">Could not delete: ${failed.join("; ")}</div>` : `<div class="soft">You can continue managing your tracks.</div>`),
+  });
+}
+const removeSong = id => deleteSongs([id]);
+
+async function cancelSplit(id) {
+  const s = songs.find(x => x.id === id);
+  const sure = await glassDialog({
+    kind: "danger", ok: "Stop split", cancel: "Keep going",
+    title: `<span class="red">Stop</span> splitting?`,
+    body: `Stop splitting <b>“${songName(s)}”</b>?<br>The work done so far is thrown away and the song is removed.`,
+  });
+  if (!sure) return false;
+  try { await api(`/api/song/${id}/cancel`, { method: "POST" }); } catch (e) { /* already finished or gone */ }
+  await refresh();
+  return true;
+}
+
+// ================= library =================
+$("#q").oninput = e => { ui.q = e.target.value.toLowerCase(); renderLibrary(); };
+$("#filters").onclick = e => { const b = e.target.closest(".fchip[data-f]"); if (!b) return; ui.filter = b.dataset.f; $$("#filters .fchip").forEach(x => x.classList.toggle("on", x === b)); renderLibrary(); };
+$("#sort").onchange = e => { ui.sort = e.target.value; renderLibrary(); };
+
+function statusHtml(s) {
+  if (s.state === "ready") return `<span class="status ok">${icon("i-check", "")}Split complete</span>`;
+  if (s.state === "queued") return `<span class="status queue">${icon("i-clock", "")}Queued</span>`;
+  if (s.state === "failed") return `<span class="status fail" title="${esc(s.message)}">${icon("i-alert", "")}Failed</span>`;
+  const p = pct(s);
+  return `<div class="stwrap"><div class="pctline"><span class="status running">${spinHtml()}Processing</span><span>${p}%</span></div><div class="pbar"><i style="width:${p}%"></i></div></div>`;
+}
+
+function renderLibrary() {
+  let list = songs.filter(s => (ui.filter === "all" || s.state === ui.filter) &&
+    (!ui.q || `${s.title} ${s.artist || ""} ${s.filename || ""}`.toLowerCase().includes(ui.q)));
+  const by = { new: (a, b) => (b.added || "").localeCompare(a.added || ""), old: (a, b) => (a.added || "").localeCompare(b.added || ""),
+    az: (a, b) => a.title.localeCompare(b.title), len: (a, b) => (b.duration || 0) - (a.duration || 0) };
+  list.sort(by[ui.sort]);
+  const rows = $("#rows");
+  for (const id of ui.selected) if (!songs.some(s => s.id === id)) ui.selected.delete(id); // forget deleted songs
+  ui.shown = list.map(s => s.id);
+  updateTicks();
+  if (!list.length) { rows.innerHTML = `<div class="empty-table">${songs.length ? "No songs match." : "No songs yet. Drop one on the left to get started."}</div>`; return; }
+  rows.innerHTML = list.map((s, i) => {
+    const ready = s.state === "ready", picked = ui.selected.has(s.id);
+    return `<div class="trow shine ${picked ? "picked" : ""}" data-id="${s.id}">
+      <label class="tick"><input type="checkbox" data-tick ${picked ? "checked" : ""} aria-label="Select ${esc(s.filename || s.title)}"><span></span></label>
+      <div class="song" data-act="open">${coverHtml(s)}<div style="min-width:0"><b>${esc(s.filename || s.title)}</b><small>${esc(s.format || "")}${s.size ? "  •  " + mb(s.size) : ""}</small></div></div>
+      <canvas class="mini" data-i="${i}"></canvas>
+      <span class="dur">${fmt(s.duration)}</span>
+      <div>${statusHtml(s)}</div>
+      <span class="date">${whenAdded(s.added)}</span>
+      <div class="actions">
+        <button class="iconbtn" data-act="play" title="Play" ${ready ? "" : "disabled"}>${icon("i-play")}</button>
+        <button class="iconbtn del" data-act="delete" title="Delete">${icon("i-trash")}</button>
+        <button class="iconbtn" data-act="menu" title="More">${icon("i-dots")}</button>
+      </div></div>`;
+  }).join("");
+  fillCovers(rows);
+  syncSpinners(rows);
+  $$("canvas.mini", rows).forEach(c => {
+    const s = list[c.dataset.i];
+    const pal = [["#ff4fa3", "#c64dff", "#7b3dff"], ["#5b3dff", "#4d8bff", "#3fd0ff"]][c.dataset.i % 2];
+    drawWave(c, s.thumb || null, pal, 0, 1, 1, 5);
+  });
+}
+
+$("#rows").onclick = async e => {
+  const b = e.target.closest("[data-act]"), row = e.target.closest(".trow");
+  if (!b || !row) return;
+  const s = songs.find(x => x.id === row.dataset.id);
+  if (b.dataset.act === "open") return openFromList(s.id);
+  if (b.dataset.act === "play") { go(`#/song/${s.id}`); setTimeout(play, 600); return; }
+  if (b.dataset.act === "delete") return deleteSongs([s.id]);
+  if (b.dataset.act === "menu") openSongMenu(b, s.id, "library");
+};
+
+// Ticking songs: rows, "select all shown", and the Clear button's count.
+$("#rows").addEventListener("change", e => {
+  if (!e.target.matches("[data-tick]")) return;
+  const row = e.target.closest(".trow");
+  if (e.target.checked) ui.selected.add(row.dataset.id); else ui.selected.delete(row.dataset.id);
+  row.classList.toggle("picked", e.target.checked);
+  updateTicks();
+});
+$("#tickAll").onchange = e => {
+  for (const id of ui.shown || []) if (e.target.checked) ui.selected.add(id); else ui.selected.delete(id);
+  renderLibrary();
+};
+function updateTicks() {
+  const shown = ui.shown || [], picked = shown.filter(id => ui.selected.has(id)).length, all = $("#tickAll");
+  all.checked = shown.length > 0 && picked === shown.length;
+  all.indeterminate = picked > 0 && picked < shown.length;
+  const n = ui.selected.size;
+  $("#clearBtn").disabled = !n;
+  $("#clearLabel").textContent = n ? `Clear (${n})` : "Clear";
+  $("#clearBtn").title = n ? `Delete the ${n} ticked song${n > 1 ? "s" : ""}` : "Tick songs in the list to clear them";
+}
+$("#clearBtn").onclick = () => deleteSongs([...ui.selected]);
+
+// One menu for a song. The library has its own trash icon and opens songs by
+// their title, so its menu is downloads only; the sidebar keeps Remove song.
+function openSongMenu(anchor, id, where) {
+  const s = songs.find(x => x.id === id);
+  if (!s) return;
+  const items = [];
+  if (s.state === "ready") items.push(
+    { icon: "i-layers", label: "Download all (vocals + backing)", run: () => downloadAll(s.id) },
+    { icon: "i-down", label: "Download vocals", run: () => saveStems(s.id, ["vocals"]) },
+    { icon: "i-down", label: "Download backing track", run: () => saveStems(s.id, ["backing"]) });
+  if (s.state === "failed") items.push({ icon: "i-reset", label: "Try again", run: async () => { await api(`/api/song/${s.id}/retry`, { method: "POST" }); refresh(); } });
+  if (s.state === "queued" || s.state === "working") items.push({ icon: "i-x", label: "Cancel split", danger: true, run: () => cancelSplit(s.id) });
+  else if (where === "side") items.push({ icon: "i-trash", label: "Remove song", danger: true, run: () => removeSong(s.id) });
+  if (!items.length) return;
+  openMenu(anchor, items);
+  $(".menu").dataset.for = s.id;
+  anchor.closest(".sitem")?.classList.add("menu-open");
+}
+
+// ================= keyboard =================
+addEventListener("keydown", e => {
+  if (route().view !== "player" || e.target.tagName === "INPUT") return;
+  if (e.code === "Space") { e.preventDefault(); master().paused ? play() : pause(); }
+  if (e.code === "ArrowLeft") seek(master().currentTime - 5);
+  if (e.code === "ArrowRight") seek(master().currentTime + 5);
+  if (e.key === "l") $("#loopToggle").click();
+});
+
+refresh().then(show);
+</script>
+</body>
+</html>

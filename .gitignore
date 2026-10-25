@@ -1,0 +1,10 @@
+# Created by the installer or the app on each PC; never committed.
+.venv/
+.venv*/
+models/
+songs/
+webview-data/
+tools/ffmpeg/
+gonilift.log
+__pycache__/
+*.pyc

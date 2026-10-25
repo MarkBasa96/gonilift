@@ -1,0 +1,10 @@
+# Gonilift's Python packages, pinned to the versions it was tested with.
+# PyTorch is installed separately by tools\install.ps1: the CUDA build on PCs
+# with an NVIDIA card, the CPU build everywhere else.
+audio-separator[cpu]==0.47.1
+fastapi==0.162.0
+uvicorn==0.54.0
+python-multipart==0.0.32
+pywebview==6.2.1
+soundfile==0.14.0
+numpy==2.4.6
