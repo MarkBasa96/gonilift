@@ -12,7 +12,9 @@ and loop the line you keep missing.
 
 **No account. No subscription. No upload. No limits.**
 
-**[⬇ Download Gonilift (ZIP)](https://github.com/MarkBasa96/gonilift/archive/refs/heads/main.zip)** · Windows 10 / 11 · Free and open source
+**[Get the Easy Edition · $3.50](https://markbasa.itch.io/gonilift)** · ready to run: unzip, double-click, works offline from the first split
+
+or **[⬇ download free (ZIP)](https://github.com/MarkBasa96/gonilift/archive/refs/heads/main.zip)** and set it up yourself · Windows 10 / 11 · Free and open source
 
 <img src="docs/screenshots/player-practice.png" alt="Gonilift player: vocal track muted for karaoke, key moved up 2 semitones, speed 0.90x and a loop around the chorus" width="900" />
 
@@ -89,6 +91,7 @@ put it on.
 ## Install
 
 You need **Windows 10 or 11**, about **6 GB of free space**, and internet for the first setup.
+(The [Easy Edition](https://markbasa.itch.io/gonilift) skips all of this: Python, the AI engine and the model are already inside.)
 
 1. **[Download the ZIP](https://github.com/MarkBasa96/gonilift/archive/refs/heads/main.zip)** and unzip it somewhere
    outside OneDrive, for example `C:\Apps\Gonilift`.
