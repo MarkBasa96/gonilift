@@ -16,6 +16,10 @@ and loop the line you keep missing.
 
 or **[⬇ download free (ZIP)](https://github.com/MarkBasa96/gonilift/archive/refs/heads/main.zip)** and set it up yourself · Windows 10 / 11 · Free and open source
 
+**[▶ Watch the 20-second demo](https://youtu.be/yiEZUn9zNlg)**
+
+<a href="https://youtu.be/yiEZUn9zNlg"><img src="docs/screenshots/promo-video-thumb.jpg" alt="Play the 20-second Gonilift demo video on YouTube: Sing it yourself" width="640" /></a>
+
 <img src="docs/screenshots/player-practice.png" alt="Gonilift player: vocal track muted for karaoke, key moved up 2 semitones, speed 0.90x and a loop around the chorus" width="900" />
 
 </div>
