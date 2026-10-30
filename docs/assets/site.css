@@ -94,6 +94,12 @@ code { background: #ffffff12; padding: 2px 6px; border-radius: 6px; font-size: .
 .posts a { text-decoration: none; color: inherit; }
 .posts .card:hover { border-color: #8f7bff55; }
 .posts h3 { margin: 0 0 6px; color: var(--text); }
+.posts.two { grid-template-columns: repeat(auto-fit, minmax(min(440px, 100%), 1fr)); margin-top: 28px; }
+.meta a { color: var(--muted); }
+.related { margin-top: 48px; padding-top: 8px; border-top: 1px solid #ffffff14; }
+.related h2 { font-size: 22px; margin-top: 24px; }
+.related ul { padding-left: 20px; }
+.related li { margin: 8px 0; }
 footer { border-top: 1px solid #ffffff10; padding: 34px 0 48px; color: var(--dim); font-size: 14px; margin-top: 40px; }
 footer .wrap { display: flex; gap: 18px; flex-wrap: wrap; justify-content: space-between; }
 footer a { color: var(--muted); }

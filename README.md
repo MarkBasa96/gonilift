@@ -6,7 +6,7 @@
 
 **Take the singer out of any song, and sing it yourself.**
 
-A free Windows app that splits any song into a **vocal track** and a **backing track** with AI, right on your own PC.
+Gonilift is a free, offline **AI vocal remover for Windows**. It splits any song into a **vocal track** and a **backing track** right on your own PC, with no upload.
 Mute the singer for karaoke, keep them softly underneath as a guide, move the song into your key, slow it down,
 and loop the line you keep missing.
 
