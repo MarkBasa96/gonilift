@@ -5,7 +5,10 @@
   var root = document.documentElement;
   var still = matchMedia('(prefers-reduced-motion: reduce)').matches;
   var mouse = matchMedia('(hover: hover) and (pointer: fine)').matches;
-  if (!still && 'IntersectionObserver' in window) root.classList.add('motion');
+  // Crawlers (Googlebot, Bingbot, AI bots, Lighthouse) never scroll, so reveals would leave
+  // everything below the first screen invisible in their render. They get the page fully shown.
+  var bot = /bot|crawl|spider|slurp|inspectiontool|lighthouse/i.test(navigator.userAgent);
+  if (!still && !bot && 'IntersectionObserver' in window) root.classList.add('motion');
 
   var REVEAL = 'section .eyebrow, section h2, section .sub, .faq-head > p, .feel .card, .feat8 .card, ' +
                '.shots8 figure, .plans .card, details.row, .posts .card, article > *';
